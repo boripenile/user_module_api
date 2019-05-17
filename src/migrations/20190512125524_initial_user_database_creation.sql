@@ -241,28 +241,43 @@ ALTER TABLE users_roles
 ADD CONSTRAINT FK_roles_users
 FOREIGN KEY (role_id) REFERENCES roles(id);
 
-INSERT INTO `organisations` (`id`, `code`, `name`, `app_version`, `created_at`, `created_by`)
-VALUES (1, '123456', 'Youngprime Solution Ventures', '1.0.0', NOW(), 'system');
+INSERT INTO `organisations` (`id`, `code`, `name`, `description`, `created_at`, `created_by`)
+VALUES (1, '123456', 'Youngprime Solution Ventures', 'Simplifying processes with software', NOW(), 'system');
 
-INSERT INTO `users` (`id`, `code`, `name`, `app_version`, `created_at`, `created_by`)
-VALUES (1, '123456', 'Youngprime Solution Ventures', '1.0.0', NOW(), 'system');
+INSERT INTO `addresses` (`id`, `phone_number`, `created_at`, `created_by`)
+VALUES (1, '08069566914', NOW(), 'admin');
+
+INSERT INTO `users` (`id`, `address_id`, `username`, `password`, `created_at`, `created_by`)
+VALUES (1, '1', 'admin', '746a5a2664633cb15829e80cc8d5dd7368b1d939756e7b069df9df482e2afc3c44029ec71ffbf7cc9916719d861b60fc34b5bd6a4f2cb0fe7747d99d5b219162', NOW(), 'system');
+
+INSERT INTO `users_organisations` (`id`, `user_id`, `organisation_id`, `created_at`, `created_by`)
+VALUES (1, '1', '1', NOW(), 'admin');
 
 INSERT INTO `applications` (`id`, `app_name`, `app_description`, `app_version`, `created_at`, `created_by`)
 VALUES (1, 'Car dealers System', 'Managing of car business.', '1.0.0', NOW(), 'system');
 
-INSERT INTO `roles` (`id`, `application_id`,`role_name`, `description`, `created_at`. `created_by`) 
+INSERT INTO `roles` (`id`, `application_id`, `role_name`, `description`, `created_at`, `created_by`) 
 VALUES (1, 1, 'superadmin', 'Super administrator', NOW(), 'system');
 
-INSERT INTO `roles` (`id`, `application_id`,`role_name`, `description`, `created_at`. `created_by`) 
+INSERT INTO `roles` (`id`, `application_id`,`role_name`, `description`, `created_at`, `created_by`) 
 VALUES (2, 1, 'admin', 'Administrator', NOW(), 'system');
 
-INSERT INTO `roles` (`id`, `application_id`,`role_name`, `description`, `created_at`. `created_by`) 
+INSERT INTO `roles` (`id`, `application_id`,`role_name`, `description`, `created_at`, `created_by`) 
 VALUES (3, 1, 'client', 'Client', NOW(), 'system');
 
-INSERT INTO `roles` (`id`, `application_id`,`role_name`, `description`, `created_at`. `created_by`) 
+INSERT INTO `roles` (`id`, `application_id`,`role_name`, `description`, `created_at`, `created_by`) 
 VALUES (4, 1, 'staff', 'Staff', NOW(), 'system');
 
-INSERT INTO `roles` (`id`, `application_id`,`role_name`, `description`, `created_at`. `created_by`) 
+INSERT INTO `roles` (`id`, `application_id`,`role_name`, `description`, `created_at`, `created_by`) 
 VALUES (5, 1, 'customer', 'Customer', NOW(), 'system');
+
+INSERT INTO `users_roles` (`id`, `user_id`, `role_id`, `created_at`, `created_by`)
+VALUES (1, '1', '1', NOW(), 'system');
+
+INSERT INTO `users_applications` (`id`, `user_id`, `application_id`, `created_at`, `created_by`)
+VALUES (1, '1', '1', NOW(), 'system');
+
+INSERT INTO `applications_organisations` (`id`, `application_id`, `organisation_id`, `created_at`, `created_by`)
+VALUES (1, '1', '1', NOW(), 'system');
 
 

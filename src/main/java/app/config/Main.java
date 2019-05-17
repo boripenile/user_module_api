@@ -12,7 +12,10 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
+import java.security.NoSuchAlgorithmException;
 import java.util.Properties;
+
+import app.utils.HashPassword;
 
 public class Main {
 	static Properties properties = null;
@@ -34,8 +37,11 @@ public class Main {
 		}
 	}
 	public static void main(String[] args) {
-		loadSmsSettings();
-		System.out.println("Url: " + properties.getProperty("url_sms_provider"));
+		try {
+			System.out.println(HashPassword.hashPassword("password01"));
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		}
 	}
 
 }
