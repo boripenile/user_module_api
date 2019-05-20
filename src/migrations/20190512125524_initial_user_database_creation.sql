@@ -27,7 +27,8 @@ CREATE TABLE `organisations`(
 
 CREATE TABLE `applications`(
 	`id` BIGINT(11) auto_increment PRIMARY KEY,
-	`app_name` VARCHAR(50),
+	`app_code` VARCHAR(20) NOT NULL,
+	`app_name` VARCHAR(50) NOT NULL,
 	`app_description` VARCHAR(100),
 	`app_version` VARCHAR(20),
 	`image_url` VARCHAR(150),
@@ -247,14 +248,14 @@ VALUES (1, '123456', 'Youngprime Solution Ventures', 'Simplifying processes with
 INSERT INTO `addresses` (`id`, `phone_number`, `created_at`, `created_by`)
 VALUES (1, '08069566914', NOW(), 'admin');
 
-INSERT INTO `users` (`id`, `address_id`, `username`, `password`, `created_at`, `created_by`)
-VALUES (1, '1', 'admin', '746a5a2664633cb15829e80cc8d5dd7368b1d939756e7b069df9df482e2afc3c44029ec71ffbf7cc9916719d861b60fc34b5bd6a4f2cb0fe7747d99d5b219162', NOW(), 'system');
+INSERT INTO `users` (`id`, `address_id`, `username`, `password`, `created_at`, `created_by`, `active`)
+VALUES (1, '1', 'admin', '746a5a2664633cb15829e80cc8d5dd7368b1d939756e7b069df9df482e2afc3c44029ec71ffbf7cc9916719d861b60fc34b5bd6a4f2cb0fe7747d99d5b219162', NOW(), 'system', 1);
 
 INSERT INTO `users_organisations` (`id`, `user_id`, `organisation_id`, `created_at`, `created_by`)
 VALUES (1, '1', '1', NOW(), 'admin');
 
-INSERT INTO `applications` (`id`, `app_name`, `app_description`, `app_version`, `created_at`, `created_by`)
-VALUES (1, 'Car dealers System', 'Managing of car business.', '1.0.0', NOW(), 'system');
+INSERT INTO `applications` (`id`, `app_code`, `app_name`, `app_description`, `app_version`, `created_at`, `created_by`)
+VALUES (1, 'CJK2233448', 'Car dealers System', 'Managing of car business.', '1.0.0', NOW(), 'system');
 
 INSERT INTO `roles` (`id`, `application_id`, `role_name`, `description`, `created_at`, `created_by`) 
 VALUES (1, 1, 'superadmin', 'Super administrator', NOW(), 'system');
@@ -271,6 +272,15 @@ VALUES (4, 1, 'staff', 'Staff', NOW(), 'system');
 INSERT INTO `roles` (`id`, `application_id`,`role_name`, `description`, `created_at`, `created_by`) 
 VALUES (5, 1, 'customer', 'Customer', NOW(), 'system');
 
+INSERT INTO `permissions` (`id`, `application_id`,`permission_name`, `description`, `created_at`, `created_by`) 
+VALUES (1, 1, '*', 'All', NOW(), 'system');
+
+INSERT INTO `permissions` (`id`, `application_id`,`permission_name`, `description`, `created_at`, `created_by`) 
+VALUES (2, 1, 'roles:list', 'View all roles', NOW(), 'system');
+
+INSERT INTO `permissions` (`id`, `application_id`,`permission_name`, `description`, `created_at`, `created_by`) 
+VALUES (3, 1, 'roles:view', 'View a role', NOW(), 'system');
+
 INSERT INTO `users_roles` (`id`, `user_id`, `role_id`, `created_at`, `created_by`)
 VALUES (1, '1', '1', NOW(), 'system');
 
@@ -279,5 +289,14 @@ VALUES (1, '1', '1', NOW(), 'system');
 
 INSERT INTO `applications_organisations` (`id`, `application_id`, `organisation_id`, `created_at`, `created_by`)
 VALUES (1, '1', '1', NOW(), 'system');
+
+INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `created_at`, `created_by`)
+VALUES (1, '1', '1', NOW(), 'system');
+
+INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `created_at`, `created_by`)
+VALUES (2, '1', '2', NOW(), 'system');
+
+INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `created_at`, `created_by`)
+VALUES (3, '1', '3', NOW(), 'system');
 
 

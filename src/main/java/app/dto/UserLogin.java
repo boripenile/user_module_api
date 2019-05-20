@@ -5,15 +5,9 @@ public class UserLogin {
     private String username;
     
     private String password;
-
+    
     public UserLogin() {
 
-    }
-
-    public UserLogin(String username, String password) {
-        super();
-        this.username = username;
-        this.password = password;
     }
 
     public String getUsername() {
@@ -32,4 +26,10 @@ public class UserLogin {
         this.password = password;
     }
 
+
+	@Override
+	public String toString() {
+		return "UserLogin [username=" + username + "]";
+	}
+    
 }

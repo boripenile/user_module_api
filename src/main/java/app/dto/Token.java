@@ -1,6 +1,7 @@
 package app.dto;
 
 import java.io.Serializable;
+import java.util.Arrays;
 
 @SuppressWarnings("serial")
 public class Token implements Serializable {
@@ -63,6 +64,22 @@ public class Token implements Serializable {
 
 	public void setBasicPermissions(String[] basicPermissions) {
 		this.basicPermissions = basicPermissions;
+	}
+
+	@Override
+	public String toString() {
+		final int maxLen = 10;
+		return "Token [username=" + username + ", roles="
+				+ (roles != null ? Arrays.asList(roles).subList(0, Math.min(roles.length, maxLen)) : null)
+				+ ", selfPermissions="
+				+ (selfPermissions != null
+						? Arrays.asList(selfPermissions).subList(0, Math.min(selfPermissions.length, maxLen))
+						: null)
+				+ ", basicPermissions="
+				+ (basicPermissions != null
+						? Arrays.asList(basicPermissions).subList(0, Math.min(basicPermissions.length, maxLen))
+						: null)
+				+ ", timestamp=" + timestamp + "]";
 	}
 
 	

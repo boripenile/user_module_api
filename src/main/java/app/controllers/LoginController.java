@@ -2,32 +2,61 @@ package app.controllers;
 
 import org.javalite.activeweb.AppController;
 import org.javalite.activeweb.annotations.POST;
+import org.javalite.activeweb.annotations.RESTful;
+import org.javalite.common.JsonHelper;
+
+import com.google.gson.Gson;
+import com.google.inject.Inject;
+
+import app.dto.LoggedUserDTO;
+import app.dto.UserLogin;
+import app.services.AuthService;
 
 /**
  * @author Igor Polevoy on 9/29/14.
  */
+@RESTful
 public class LoginController extends AppController {
 
-
-    public void index(){}
-
-    @POST
-    public void login(){
-
-        if(blank("email", "password")){
-            flash("message", "Enter both, email and password");
-            redirect();
-        }else if (param("email").equals("activeweb@javalite.io") && param("password").equals("password1")){
-            session("user", "activeweb@javalite.io");
-            redirect(SecureController.class);
-        }else{
-            flash("message","Correct values to login: activeweb@javalite.io/password1 :)");
-            redirect();
-        }
+	@Inject
+	private AuthService authService;
+	
+    public void create(){
+    	try {
+    		if (header("app_code") != null) {
+    			String payload = getRequestString();
+    			UserLogin userLogin = new Gson().fromJson(payload, UserLogin.class);
+    			if (authService.isValid(userLogin.getUsername(), userLogin.getPassword())) {
+    				LoggedUserDTO loggedUser = authService.login(userLogin.getUsername(), userLogin.getPassword(), 
+    						header("app_code"));
+    				loggedUser.getUser().set("password", null);
+    				view("code", 200, "message", "Successful", "data", loggedUser.getUser().toJson(true),
+    						"token", loggedUser.getToken(), "roles", JsonHelper.toJsonString(loggedUser.getRoles()),
+    						"permissions", JsonHelper.toJsonString(loggedUser.getPermissions()));
+    				render("message");
+        		} else {
+        			view("code", 400, "message", "Invalid username or password");
+        			render("error");
+        		}
+    		} else {
+    			view("code", 400, "message", "app_code is required in the header.");
+    			render("error");
+    		}
+		} catch (Exception e) {
+			view("code", 400, "message", e);
+			render("error");
+		}
     }
+    
+	@Override
+	protected String getLayout() {
+		return null;
+	}
 
-    public void logout(){
-        session("user", null);
-        redirect("/");
-    }
+	@Override
+	protected String getContentType() {
+		return "application/json";
+	}
+    
+    
 }
