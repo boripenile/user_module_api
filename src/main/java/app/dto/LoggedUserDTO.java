@@ -2,6 +2,8 @@ package app.dto;
 
 import java.io.Serializable;
 
+import app.models.Application;
+import app.models.Organisation;
 import app.models.User;
 
 public class LoggedUserDTO implements Serializable{
@@ -15,6 +17,10 @@ public class LoggedUserDTO implements Serializable{
 	private String[] roles;
 	
 	private PermissionsDTO permissions;
+	
+	private Application application;
+	
+	private Organisation organisation;
 	
 	public String getToken() {
 		return token;
@@ -48,5 +54,20 @@ public class LoggedUserDTO implements Serializable{
 		this.permissions = permissions;
 	}
 
-	
+	public Organisation getOrganisation() {
+		return organisation;
+	}
+
+	public void setOrganisation(Organisation organisation) {
+		this.organisation = organisation;
+	}
+
+	public Application getApplication() {
+		return application;
+	}
+
+	public void setApplication(Application application) {
+		this.application = application;
+	}
+
 }

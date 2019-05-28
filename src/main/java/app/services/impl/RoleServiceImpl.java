@@ -3,7 +3,11 @@ package app.services.impl;
 import org.javalite.activejdbc.Base;
 import org.javalite.activejdbc.LazyList;
 
+import app.dto.RolesPermissionsDTO;
+import app.dto.UsersRolesDTO;
+import app.models.Permission;
 import app.models.Role;
+import app.models.User;
 import app.services.RoleService;
 
 public class RoleServiceImpl implements RoleService{
@@ -94,6 +98,60 @@ public class RoleServiceImpl implements RoleService{
 		} finally {
 			Base.close();
 		}
+	}
+
+	@Override
+	public String[] addUsersToRoles(UsersRolesDTO usersRoles) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public String[] removeUsersFromRoles(UsersRolesDTO usersRoles) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public String addPermissionsToRoles(RolesPermissionsDTO rolesPerms) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public String[] removePermissionsFromRoles(RolesPermissionsDTO rolesPerms) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public LazyList<User> findUsersByRoleName(String roleName) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public LazyList<User> findUsersByRoleId(String roleId) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public LazyList<Permission> findPermissionsByRoleId(String roleId) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public String updateUsersRoles(UsersRolesDTO usersRoles, boolean active) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public String updateRolesPermissions(RolesPermissionsDTO rolesPerms, boolean active) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	

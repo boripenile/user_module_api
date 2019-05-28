@@ -18,9 +18,11 @@ public class AuthorizationFilter extends HttpSupportFilter {
 	@Override
 	public void before() {
 		if (getRoute().getMethod().toString().equalsIgnoreCase("OPTIONS")) {
+			System.out.println("METHOD: " + getRoute().getMethod().toString());
 			render("/system/error", Collections.map("code", 200, "message", "Successful"));
 		}
 		if (header("token") != null) {
+			System.out.println("METHOD: " + getRoute().getMethod().toString());
 			String tokenStr = header("token").toString(); 
 			try {
 				Token token = authService.getTokenObject(tokenStr);

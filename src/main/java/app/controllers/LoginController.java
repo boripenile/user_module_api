@@ -1,6 +1,7 @@
 package app.controllers;
 
 import org.javalite.activeweb.AppController;
+import org.javalite.activeweb.annotations.OPTIONS;
 import org.javalite.activeweb.annotations.POST;
 import org.javalite.activeweb.annotations.RESTful;
 import org.javalite.common.JsonHelper;
@@ -21,6 +22,7 @@ public class LoginController extends AppController {
 	@Inject
 	private AuthService authService;
 	
+	@POST
     public void create(){
     	try {
     		if (header("app_code") != null) {
@@ -30,10 +32,19 @@ public class LoginController extends AppController {
     				LoggedUserDTO loggedUser = authService.login(userLogin.getUsername(), userLogin.getPassword(), 
     						header("app_code"));
     				loggedUser.getUser().set("password", null);
-    				view("code", 200, "message", "Successful", "data", loggedUser.getUser().toJson(true),
-    						"token", loggedUser.getToken(), "roles", JsonHelper.toJsonString(loggedUser.getRoles()),
-    						"permissions", JsonHelper.toJsonString(loggedUser.getPermissions()));
-    				render("message");
+    				if (loggedUser.getApplication() != null) {
+        				view("code", 200, "message", "Successful", "data", loggedUser.getUser().toJson(true),
+        						"token", loggedUser.getToken(), "roles", JsonHelper.toJsonString(loggedUser.getRoles()),
+        						"permissions", JsonHelper.toJsonString(loggedUser.getPermissions()), 
+        						"application", loggedUser.getApplication() != null ? loggedUser.getApplication().toJson(true) : null,
+        						"organisation", loggedUser.getOrganisation() != null ? loggedUser.getOrganisation().toJson(true) : null);
+        				render("message");
+    				} else {
+        				view("code", 200, "messages", "Successful", "data", loggedUser.getUser().toJson(true),
+        						"token", loggedUser.getToken(), "roles", JsonHelper.toJsonString(loggedUser.getRoles()),
+        						"permissions", JsonHelper.toJsonString(loggedUser.getPermissions()));
+    				}
+    				
         		} else {
         			view("code", 400, "message", "Invalid username or password");
         			render("error");
@@ -58,5 +69,9 @@ public class LoginController extends AppController {
 		return "application/json";
 	}
     
-    
+	public void options() {
+		view("code", 400, "message", "Successful");
+		render("error");
+		return;
+	}
 }

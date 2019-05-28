@@ -9,7 +9,7 @@ public class CatchFilter extends HttpSupportFilter{
 	public void onException(Exception e) {
 		logError(e.toString(), e);
 		if (e != null) {
-			render("/system/error", Collections.map("code", 400, "message", e.toString()));
+			render("/system/error", Collections.map("code", 400, "message", e));
 		} 
 		render("/system/error", Collections.map("code", 400, "message", "Something went wrong"));
 	}

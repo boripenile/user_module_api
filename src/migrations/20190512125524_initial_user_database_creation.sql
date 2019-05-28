@@ -33,6 +33,7 @@ CREATE TABLE `applications`(
 	`app_version` VARCHAR(20),
 	`image_url` VARCHAR(150),
 	`image_id` BIGINT(11),
+	`organisation_id` BIGINT(11) NOT NULL,
 	`active` TINYINT(1) DEFAULT '0',
 	`latest` TINYINT(1) DEFAULT '0',
 	`created_at` DATETIME DEFAULT NULL,
@@ -42,16 +43,17 @@ CREATE TABLE `applications`(
 	`updated_by` VARCHAR(50)
 )ENGINE=InnoDB;
 
-CREATE TABLE `applications_organisations`(
-	`id` BIGINT(11) auto_increment PRIMARY KEY,
-	`application_id` BIGINT(11) NOT NULL,
-	`organisation_id` BIGINT(11) NOT NULL,
-	`created_at` DATETIME DEFAULT NULL,
-	`updated_at` DATETIME DEFAULT NULL,
-	`active` TINYINT(1) DEFAULT '1',
-	`created_by` VARCHAR(50) NOT NULL,
-	`updated_by` VARCHAR(50)
-)ENGINE=InnoDB;
+--
+--CREATE TABLE `applications_organisations`(
+--	`id` BIGINT(11) auto_increment PRIMARY KEY,
+--	`application_id` BIGINT(11) NOT NULL,
+--	`organisation_id` BIGINT(11) NOT NULL,
+--	`created_at` DATETIME DEFAULT NULL,
+--	`updated_at` DATETIME DEFAULT NULL,
+--	`active` TINYINT(1) DEFAULT '1',
+--	`created_by` VARCHAR(50) NOT NULL,
+--	`updated_by` VARCHAR(50)
+--)ENGINE=InnoDB;
 
 CREATE TABLE `addresses` (
 	`id` BIGINT(11) auto_increment PRIMARY KEY,
@@ -186,12 +188,8 @@ ALTER TABLE applications
 ADD CONSTRAINT FK_applications_images
 FOREIGN KEY (image_id) REFERENCES images(id);
 
-ALTER TABLE applications_organisations
+ALTER TABLE applications
 ADD CONSTRAINT FK_applications_organisations
-FOREIGN KEY (application_id) REFERENCES applications(id);
-
-ALTER TABLE applications_organisations
-ADD CONSTRAINT FK_organisations_applications
 FOREIGN KEY (organisation_id) REFERENCES organisations(id);
 
 ALTER TABLE users_organisations
@@ -254,8 +252,8 @@ VALUES (1, '1', 'admin', '746a5a2664633cb15829e80cc8d5dd7368b1d939756e7b069df9df
 INSERT INTO `users_organisations` (`id`, `user_id`, `organisation_id`, `created_at`, `created_by`)
 VALUES (1, '1', '1', NOW(), 'admin');
 
-INSERT INTO `applications` (`id`, `app_code`, `app_name`, `app_description`, `app_version`, `created_at`, `created_by`)
-VALUES (1, 'CJK2233448', 'Car dealers System', 'Managing of car business.', '1.0.0', NOW(), 'system');
+INSERT INTO `applications` (`id`, `app_code`, `app_name`, `app_description`, `app_version`, `organisation_id`, `active`, `created_at`, `created_by`)
+VALUES (1, 'CJK2233448', 'Car dealers System', 'Managing of car business.', '1.0.0', 1, 1, NOW(), 'system');
 
 INSERT INTO `roles` (`id`, `application_id`, `role_name`, `description`, `created_at`, `created_by`) 
 VALUES (1, 1, 'superadmin', 'Super administrator', NOW(), 'system');
@@ -285,9 +283,6 @@ INSERT INTO `users_roles` (`id`, `user_id`, `role_id`, `created_at`, `created_by
 VALUES (1, '1', '1', NOW(), 'system');
 
 INSERT INTO `users_applications` (`id`, `user_id`, `application_id`, `created_at`, `created_by`)
-VALUES (1, '1', '1', NOW(), 'system');
-
-INSERT INTO `applications_organisations` (`id`, `application_id`, `organisation_id`, `created_at`, `created_by`)
 VALUES (1, '1', '1', NOW(), 'system');
 
 INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `created_at`, `created_by`)

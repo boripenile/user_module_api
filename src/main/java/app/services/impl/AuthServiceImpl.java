@@ -21,6 +21,8 @@ import app.dto.PermissionsDTO;
 import app.dto.Token;
 import app.exceptions.InvalidCredentialsException;
 import app.exceptions.InvalidTokenException;
+import app.models.Application;
+import app.models.Organisation;
 import app.models.Permission;
 import app.models.Role;
 import app.models.User;
@@ -45,6 +47,28 @@ public class AuthServiceImpl implements AuthService {
 					+ "password=? and applications.app_code=?", username, hashedPassword, appCode);
 			if (user.size() > 0) {
 				LoggedUserDTO loggedUser = addRolesAndPermissions(user.get(0));
+				LazyList<Application> app = null;
+				try {
+					app = Application.findBySQL("select applications.* from applications inner join users_applications on "
+							+ "users_applications.application_id=applications.id inner join users on users.id=users_applications.user_id "
+							+ "where applications.app_code=? and users.id=? and applications.active=?", 
+							this.appCode, loggedUser.getUser().getId(), 1);
+				} catch (Exception e) {
+					System.out.println("Error occured");
+				}
+				if (app != null) {
+					loggedUser.setApplication(app.get(0));
+					Organisation organisation = Organisation.findById(app.get(0).get("organisation_id"));
+					if (organisation != null) {
+						loggedUser.setOrganisation(organisation);
+					} else {
+						loggedUser.setOrganisation(null);
+					}
+				} else {
+					loggedUser.setApplication(null);
+					loggedUser.setOrganisation(null);
+				}
+				
 				return loggedUser;
 			}
 		} catch (NoSuchAlgorithmException e) {
