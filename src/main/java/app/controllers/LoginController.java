@@ -54,7 +54,7 @@ public class LoginController extends AppController {
     			render("error");
     		}
 		} catch (Exception e) {
-			view("code", 400, "message", e);
+			view("code", 400, "message", e.getMessage());
 			render("error");
 		}
     }

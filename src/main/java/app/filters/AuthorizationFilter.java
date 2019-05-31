@@ -28,7 +28,6 @@ public class AuthorizationFilter extends HttpSupportFilter {
 				Token token = authService.getTokenObject(tokenStr);
 				String[] roles = token.getRoles();
 				for (int i = 0; i < token.getRoles().length; i++) {
-					System.out.println("Role: " + roles[i]);
 					if (roles[i].equalsIgnoreCase("superadmin")) {
 						return;
 					}
@@ -50,6 +49,9 @@ public class AuthorizationFilter extends HttpSupportFilter {
 				String controllerName = getRoute().getController().toString();
 				String actionName = getRoute().getActionName();
 				
+				if (header("action") != null) {
+					actionName = header("action").toString();
+				}
 				if (actionName.equals("index")) {
 					actionName = "list";
 				}
@@ -69,11 +71,11 @@ public class AuthorizationFilter extends HttpSupportFilter {
 				render("/system/error", Collections.map("code", 401, "message", "You do not have the right permission to perform this operation")); 
 			} catch (MalformedClaimException e) {
 				logError(e.toString(), e);
-				render("/system/error", Collections.map("code", 400, "message", e.toString()));
+				render("/system/error", Collections.map("code", 400, "message", e.getMessage()));
 			} catch (JoseException e) {
 				logError(e.toString(), e);
-				render("/system/error", Collections.map("code", 400, "message", e.toString())); 
-			}
+				render("/system/error", Collections.map("code", 400, "message", e.getMessage())); 
+			} 
 		} else {
 			render("/system/error", Collections.map("code", 400, "message", "Token is requied in the header"));
 		}

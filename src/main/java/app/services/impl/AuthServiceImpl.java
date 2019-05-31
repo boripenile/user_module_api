@@ -287,7 +287,7 @@ public class AuthServiceImpl implements AuthService {
 				return login;
 			}
 		}
-		return null;
+		throw new JoseException("Token has expired.");
 	}
 
 }

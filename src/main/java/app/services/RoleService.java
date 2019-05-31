@@ -9,7 +9,7 @@ import app.models.Role;
 import app.models.User;
 
 public interface RoleService extends ModelService<Role> {
-	
+		
 	public String[] addUsersToRoles(UsersRolesDTO usersRoles);
 	
 	public String[] removeUsersFromRoles(UsersRolesDTO usersRoles);

@@ -45,6 +45,7 @@ public class RoleServiceImpl implements RoleService{
 	public Role update(Role model) throws Exception {
 		try {
 			Base.open();
+			Base.openTransaction();
 			if (!model.save()) {
 				return model;
 			}
@@ -68,6 +69,7 @@ public class RoleServiceImpl implements RoleService{
 			Base.commitTransaction();
 			return model;
 		} catch(Exception e) {
+			// if (Base.)
 			Base.rollbackTransaction();
 			throw new Exception(e);
 		} finally { 
