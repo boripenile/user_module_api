@@ -10,7 +10,7 @@ public class Utils {
 	
 	public static String genWalletID () {
 		Random random = new Random();
-		String nextId = new BigInteger(50, random).toString(10);
+		String nextId = new BigInteger(50, random).toString(15);
 		
 		String extractDigits = "";
 		
@@ -19,7 +19,7 @@ public class Utils {
 			
 			if (extractDigits.length() == 10) break;
 			
-			nextId = new BigInteger(50, random).toString(10);
+			nextId = new BigInteger(50, random).toString(15);
 			extractDigits = "";
 			
 		}
@@ -58,6 +58,23 @@ public class Utils {
 			nextId = new BigInteger(50, random).toString(10);
 			extractDigits = "";
 			
+		}
+		return extractDigits;
+	}
+	
+	public static String genReferralCode () {
+		Random random = new Random();
+		String nextId = new BigInteger(50, random).toString(15);
+		
+		String extractDigits = "";
+		
+ 		while (extractDigits.isEmpty() && nextId.length() >= 11) {
+			extractDigits = nextId.substring(0, 10);
+			
+			if (extractDigits.length() == 10) break;
+			
+			nextId = new BigInteger(50, random).toString(15);
+			extractDigits = "";
 		}
 		return extractDigits;
 	}

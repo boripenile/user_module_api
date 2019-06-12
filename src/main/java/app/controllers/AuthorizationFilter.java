@@ -1,7 +1,8 @@
-package app.controllers.authorization;
+package app.controllers;
 
-import app.controllers.LoginController;
 import org.javalite.activeweb.controller_filters.HttpSupportFilter;
+
+import app.controllers.authorization.Protected;
 
 /**
  * @author Igor Polevoy on 9/29/14.

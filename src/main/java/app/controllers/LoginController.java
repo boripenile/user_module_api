@@ -24,25 +24,42 @@ public class LoginController extends AppController {
 	
 	@POST
     public void create(){
-    	try {
+		if (header("action") != null && header("action").equalsIgnoreCase("getRolesAndPermissions")) {
+			getRolesAndPermissions();
+		} else {
+			login();
+		}
+    	
+    }
+    
+	public void login () {
+		try {
     		if (header("app_code") != null) {
     			String payload = getRequestString();
     			UserLogin userLogin = new Gson().fromJson(payload, UserLogin.class);
     			if (authService.isValid(userLogin.getUsername(), userLogin.getPassword())) {
     				LoggedUserDTO loggedUser = authService.login(userLogin.getUsername(), userLogin.getPassword(), 
     						header("app_code"));
-    				loggedUser.getUser().set("password", null);
     				if (loggedUser.getApplication() != null) {
+    					if (loggedUser.getOrganisations().size() > 1) {
+    						view("code", 200, "message", "Successful", "data", loggedUser.getUser().toJson(true),
+            						"application", loggedUser.getApplication() != null ? loggedUser.getApplication().toJson(true) : null,
+            						"organisation", (loggedUser.getOrganisations() != null && loggedUser.getOrganisations().size() > 0) ? loggedUser.getOrganisations().toJson(true) : null);
+            				render("userdata");
+    					} else if (loggedUser.getOrganisations().size() == 1) {
+    						view("code", 200, "message", "Successful", "data", loggedUser.getUser().toJson(true),
+            						"token", loggedUser.getToken(), "roles", JsonHelper.toJsonString(loggedUser.getRoles()),
+            						"permissions", JsonHelper.toJsonString(loggedUser.getPermissions()), 
+            						"application", loggedUser.getApplication() != null ? loggedUser.getApplication().toJson(true) : null,
+            						"organisation", (loggedUser.getOrganisations() != null && loggedUser.getOrganisations().size() > 0) ? loggedUser.getOrganisations().toJson(true) : null);
+            				render("message");
+    					}
+        				
+    				} else {
         				view("code", 200, "message", "Successful", "data", loggedUser.getUser().toJson(true),
         						"token", loggedUser.getToken(), "roles", JsonHelper.toJsonString(loggedUser.getRoles()),
-        						"permissions", JsonHelper.toJsonString(loggedUser.getPermissions()), 
-        						"application", loggedUser.getApplication() != null ? loggedUser.getApplication().toJson(true) : null,
-        						"organisation", loggedUser.getOrganisation() != null ? loggedUser.getOrganisation().toJson(true) : null);
-        				render("message");
-    				} else {
-        				view("code", 200, "messages", "Successful", "data", loggedUser.getUser().toJson(true),
-        						"token", loggedUser.getToken(), "roles", JsonHelper.toJsonString(loggedUser.getRoles()),
         						"permissions", JsonHelper.toJsonString(loggedUser.getPermissions()));
+        				render("messages");
     				}
     				
         		} else {
@@ -57,8 +74,33 @@ public class LoginController extends AppController {
 			view("code", 400, "message", e.getMessage());
 			render("error");
 		}
-    }
-    
+	}
+	public void getRolesAndPermissions () {
+		if (header("org_code") != null) {
+			try {
+				String payload = getRequestString();
+    			UserLogin userLogin = new Gson().fromJson(payload, UserLogin.class);
+    				LoggedUserDTO loggedUser = authService.getRoleAndPermission(userLogin.getUsername(), userLogin.getPassword(), 
+    						header("org_code"));
+    				if (loggedUser.getToken() != null) {
+    					view("code", 200, "message", "Successful", "data", loggedUser.getUser().toJson(true),
+        						"token", loggedUser.getToken(), "roles", JsonHelper.toJsonString(loggedUser.getRoles()),
+        						"permissions", JsonHelper.toJsonString(loggedUser.getPermissions()));
+        				render("rolespermissions");
+    				} else {
+        				view("code", 400, "message", "Invalid organisaion code was provided or username/password");
+        				render("error");
+    				}
+			} catch (Exception e) {
+				view("code", 400, "message", e.getMessage());
+				render("error");
+			}
+		} else {
+			view("code", 400, "message", "org_code is required as a header parameter.");
+			render("error");
+		}
+	}
+	
 	@Override
 	protected String getLayout() {
 		return null;
@@ -69,9 +111,9 @@ public class LoginController extends AppController {
 		return "application/json";
 	}
     
+	@OPTIONS
 	public void options() {
-		view("code", 400, "message", "Successful");
+		view("code", 200, "message", "Successful");
 		render("error");
-		return;
 	}
 }

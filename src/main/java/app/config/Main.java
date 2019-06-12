@@ -2,6 +2,8 @@ package app.config;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import static org.javalite.app_config.AppConfig.p;
+import static org.javalite.app_config.AppConfig.isInDevelopment;
 
 public class Main {
 	
@@ -22,7 +24,8 @@ public class Main {
 			System.out.println("Date: " + strDate);
 		}
 		
-		
+		System.out.println("Is in development: " + isInDevelopment());
+		System.out.println("Source: " + p("config_location") + "/" + "database.properties");
 	}
 
 }

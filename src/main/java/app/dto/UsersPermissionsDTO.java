@@ -1,10 +1,10 @@
 package app.dto;
 
-public class RolesPermissionsDTO {
+public class UsersPermissionsDTO {
 
 	private String orgCode;
 	
-	private String[] roleNames;
+	private String[] userIds;
 	
 	private String[] permissionNames;
 
@@ -16,20 +16,12 @@ public class RolesPermissionsDTO {
 		this.orgCode = orgCode;
 	}
 
-	public String[] getRoleNames() {
-		return roleNames;
+	public String[] getUserIds() {
+		return userIds;
 	}
 
-	public void setRoleNames(String[] roleNames) {
-		this.roleNames = roleNames;
-	}
-
-	public String[] getRolesNames() {
-		return roleNames;
-	}
-
-	public void setRolesNames(String[] rolesNames) {
-		this.roleNames = rolesNames;
+	public void setUserIds(String[] userIds) {
+		this.userIds = userIds;
 	}
 
 	public String[] getPermissionNames() {
@@ -40,7 +32,7 @@ public class RolesPermissionsDTO {
 		this.permissionNames = permissionNames;
 	}
 
-	public RolesPermissionsDTO() {
+	public UsersPermissionsDTO() {
 		// TODO Auto-generated constructor stub
 	}
 }

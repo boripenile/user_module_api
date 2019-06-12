@@ -1,10 +1,7 @@
 package app.services.impl;
-
-import org.javalite.activejdbc.Base;
 import org.javalite.activejdbc.LazyList;
 
 import app.models.Application;
-import app.models.Role;
 import app.services.AppService;
 
 public class AppServiceImpl implements AppService {
@@ -48,7 +45,7 @@ public class AppServiceImpl implements AppService {
 	@Override
 	public Application findByAppCode(String code) throws Exception {
 		try {
-			Base.open();
+			//Base.open();
 			LazyList<Application> apps = Application.find("app_code = ?", code);
 			int size = apps.size();
 			if (size > 0) {
@@ -56,8 +53,14 @@ public class AppServiceImpl implements AppService {
 			}
 			throw new Exception("No application found with app_code: " + code);
 		} finally {
-			Base.close();
+			//Base.close();
 		}
+	}
+
+	@Override
+	public boolean delete(String id) throws Exception {
+		// TODO Auto-generated method stub
+		return false;
 	}
 
 }

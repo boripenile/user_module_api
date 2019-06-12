@@ -4,8 +4,6 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
-
-import org.javalite.activejdbc.Base;
 import org.javalite.activejdbc.LazyList;
 import org.javalite.common.JsonHelper;
 import org.jose4j.jws.AlgorithmIdentifiers;
@@ -16,8 +14,11 @@ import org.jose4j.lang.JoseException;
 
 import com.google.gson.Gson;
 
+import app.dto.BasicPermissionDTO;
 import app.dto.LoggedUserDTO;
 import app.dto.PermissionsDTO;
+import app.dto.RoleDTO;
+import app.dto.SelfPermissionDTO;
 import app.dto.Token;
 import app.exceptions.InvalidCredentialsException;
 import app.exceptions.InvalidTokenException;
@@ -40,27 +41,44 @@ public class AuthServiceImpl implements AuthService {
 		try {
 			this.appCode = appCode;
 			String hashedPassword = HashPassword.hashPassword(password);
-			Base.open();
-			LazyList<User> user = User.findBySQL("select users.* from users inner join users_applications "
-					+ "on users_applications.user_id=users.id inner join applications on "
-					+ "applications.id=users_applications.application_id where username=? and "
-					+ "password=? and applications.app_code=?", username, hashedPassword, appCode);
+			LazyList<User> user = User.findBySQL("select users.* from users inner join users_organisations "
+					+ "on users_organisations.user_id=users.id inner join applications on "
+					+ "applications.id=users_organisations.application_id inner join organisations on "
+					+ "organisations.id=users_organisations.organisation_id where username=? and "
+					+ "password=? and applications.app_code=?", username, hashedPassword, this.appCode);
 			if (user.size() > 0) {
-				LoggedUserDTO loggedUser = addRolesAndPermissions(user.get(0));
+				if (user.get(0).getBoolean("active") == Boolean.FALSE) {
+					throw new InvalidCredentialsException("Your account has been disabled. Please contact your administrator.");
+				}
 				LazyList<Application> app = null;
+				LoggedUserDTO loggedUser = new LoggedUserDTO();
 				try {
-					app = Application.findBySQL("select applications.* from applications inner join users_applications on "
-							+ "users_applications.application_id=applications.id inner join users on users.id=users_applications.user_id "
+					app = Application.findBySQL("select applications.* from applications inner join users_organisations on "
+							+ "users_organisations.application_id=applications.id inner join users on "
+							+ "users.id=users_organisations.user_id inner join organisations on "
+							+ "organisations.id=users_organisations.organisation_id "
 							+ "where applications.app_code=? and users.id=? and applications.active=?", 
-							this.appCode, loggedUser.getUser().getId(), 1);
+							this.appCode, user.get(0).getId(), 1);
 				} catch (Exception e) {
 					System.out.println("Error occured");
 				}
 				if (app != null) {
-					loggedUser.setApplication(app.get(0));
-					Organisation organisation = Organisation.findById(app.get(0).get("organisation_id"));
-					if (organisation != null) {
-						loggedUser.setOrganisation(organisation);
+					LazyList<Organisation> organisations = Organisation.findBySQL("select organisations.* from organisations "
+							+ "inner join applications on applications.id=organisations.application_id inner join users_organisations "
+							+ "on users_organisations.application_id=applications.id "
+							+ "where applications.app_code=? and applications.active=? "
+							+ "and users_organisations.organisation_id=organisations.id", 
+							this.appCode, 1);
+					if (organisations != null) {
+						if (organisations.size() == 1) {
+							loggedUser = addRolesAndPermissions(user.get(0), organisations.get(0).getString("code"));
+							loggedUser.setApplication(app.get(0));
+							loggedUser.setOrganisation(organisations);
+						} else {
+							loggedUser.setUser(user.get(0));
+							loggedUser.setApplication(app.get(0));
+							loggedUser.setOrganisation(organisations);
+						}
 					} else {
 						loggedUser.setOrganisation(null);
 					}
@@ -68,21 +86,18 @@ public class AuthServiceImpl implements AuthService {
 					loggedUser.setApplication(null);
 					loggedUser.setOrganisation(null);
 				}
-				
 				return loggedUser;
 			}
 		} catch (NoSuchAlgorithmException e) {
-			Base.rollbackTransaction();
 			e.printStackTrace();
 		} finally {
-			Base.close();
 		}
 		return null;
 	}
 
 	@Override
-	public String getToken(String username) throws JoseException, InvalidCredentialsException {
-		return generateToken(username);
+	public String getToken(String username, String orgCode) throws JoseException, InvalidCredentialsException {
+		return generateToken(username, orgCode);
 	}
 
 	@Override
@@ -106,69 +121,71 @@ public class AuthServiceImpl implements AuthService {
 	}
 
 	@Override
-	public String generateToken(String username) throws JoseException, InvalidCredentialsException {
+	public String generateToken(String username, String orgCode) throws JoseException, InvalidCredentialsException {
 		try {
-			Base.open();
 			User user = User.findFirst("username=? and active=?", username, 1);
-			String token = addRolesAndPermissions(user).getToken();
+			String token = addRolesAndPermissions(user, orgCode).getToken();
 			return token;
 		} finally {
-			Base.close();
+			//Base.close();
 		}
-
 	}
 
 	@Override
 	public boolean isValid(String username, String password) {
 		try {
-			Base.open();
+			//Base.open();
 			return User.findFirst("username=? and password=?", username, HashPassword.hashPassword(password)) == null
 					? false
 					: true;
 		} catch (NoSuchAlgorithmException e) {
 		} finally {
-			Base.close();
+			//Base.close();
 		}
 		return false;
 	}
 
 	@Override
-	public String extendToken(String previousToken)
+	public String extendToken(String previousToken, String orgCode)
 			throws JoseException, MalformedClaimException, InvalidCredentialsException, InvalidTokenException {
 		String username = getUsername(previousToken);
 		if (username == null) {
 			throw new InvalidTokenException();
 		}
-		return generateToken(username);
+		return generateToken(username, orgCode);
 	}
-
-	private LoggedUserDTO addRolesAndPermissions(User user) {
+	
+	private LoggedUserDTO addRolesAndPermissions(User user, String orgCode) {
 		LoggedUserDTO logged = new LoggedUserDTO();
 		List<Role> roles = Role
 				.findBySQL("select roles.* from roles inner join users_roles on users_roles.role_id=roles.id "
-						+ "inner join users on users_roles.user_id=users.id inner join applications "
-						+ "on applications.id=roles.application_id inner join users_applications on "
-						+ "users_applications.user_id=users.id where users.id=? and applications.app_code=?", 
-						user.getId(), this.appCode);
+						+ "inner join users on users_roles.user_id=users.id inner join organisations "
+						+ "on organisations.id=users_roles.organisation_id "
+						+ "where users.id=? and organisations.code=? and users_roles.active=?", 
+						user.getId(), orgCode, true);
 		int length = roles.size();
 		PermissionsDTO userPermissions = null;
 		if (length > 0) {
-			userPermissions = computeBasicPermissions(logged, roles, length);
+			userPermissions = computeBasicPermissions(logged, roles, length, orgCode);
 		}
 		List<Permission> permissions = Permission
 				.findBySQL(
 						"select permissions.* from permissions inner join users_permissions "
 								+ "on users_permissions.permission_id=permissions.id "
-								+ "inner join users on users_permissions.user_id=users.id inner join applications "
-								+ "on applications.id=permissions.application_id inner join users_applications on " 
-								+ "users_applications.user_id=users.id where users.id=? and applications.app_code=?",
-						user.getId(), this.appCode);
+								+ "inner join users on users_permissions.user_id=users.id inner join organisations "
+								+ "on organisations.id=users_permissions.organisation_id "
+								+ "where users.id=? and organisations.code=? "
+								+ "and users_permissions.active=?",
+						user.getId(), orgCode, true);
 		if (permissions != null) {
 			int pemLength = permissions.size();
 			if (pemLength > 0) {
-				String[] strPermissions = new String[pemLength];
+				SelfPermissionDTO[] strPermissions = new SelfPermissionDTO[pemLength];
 				for (int j = 0; j < pemLength; j++) {
-					strPermissions[j] = permissions.get(j).getString("permission_name");
+					SelfPermissionDTO self = new SelfPermissionDTO();
+					self.setName(permissions.get(j).getString("permission_name"));
+					self.setDescription(permissions.get(j).getString("description"));
+					strPermissions[j] = self;
 				}
 				userPermissions.setSelf(strPermissions);
 			}
@@ -186,15 +203,98 @@ public class AuthServiceImpl implements AuthService {
 		return logged;
 	}
 
+	public RoleDTO[] getRoleDTO(String userId, String appCode) throws Exception {
+		List<Role> roles = Role
+				.findBySQL("select roles.* from roles inner join users_roles on users_roles.role_id=roles.id "
+						+ "inner join users on users_roles.user_id=users.id inner join applications "
+						+ "on applications.id=roles.application_id "
+						+ "where users.id=? and applications.app_code=? "
+						+ "and users_roles.active=?", 
+						userId, appCode, true);
+		int length = roles.size();
+		RoleDTO[] strRoles = new RoleDTO[length];
+		for (int i = 0; i < length; i++) {
+			RoleDTO role = new RoleDTO();
+			role.setName(roles.get(i).getString("role_name"));
+			role.setDescription(roles.get(i).getString("description"));
+			strRoles[i] = role;
+		}
+		return strRoles;
+	}
+	
+	public PermissionsDTO getPermissionDTO(String userId, String appCode) throws Exception {
+		List<Role> roles = Role
+				.findBySQL("select roles.* from roles inner join users_roles on users_roles.role_id=roles.id "
+						+ "inner join users on users_roles.user_id=users.id inner join applications "
+						+ "on applications.id=roles.application_id "
+						+ "where users.id=? and applications.app_code=? "
+						+ "and users_roles.active=?", 
+						userId, appCode, true);
+		int length = roles.size();
+		PermissionsDTO userPermissions = null;
+		if (length > 0) {
+			userPermissions = computeBasicPermissions(roles, length, appCode);
+		}
+		List<Permission> permissions = Permission
+				.findBySQL(
+						"select permissions.* from permissions inner join users_permissions "
+								+ "on users_permissions.permission_id=permissions.id "
+								+ "inner join users on users_permissions.user_id=users.id inner join applications "
+								+ "on applications.id=permissions.application_id "
+								+ "where users.id=? and applications.app_code=? "
+								+ "and users_permissions.active=?",
+						userId, appCode, true);
+		if (permissions != null) {
+			int pemLength = permissions.size();
+			if (pemLength > 0) {
+				SelfPermissionDTO[] strPermissions = new SelfPermissionDTO[pemLength];
+				for (int j = 0; j < pemLength; j++) {
+					SelfPermissionDTO self = new SelfPermissionDTO();
+					self.setName(permissions.get(j).getString("permission_name"));
+					self.setDescription(permissions.get(j).getString("description"));
+					strPermissions[j] = self;
+				}
+				userPermissions.setSelf(strPermissions);
+			}
+		}
+		userPermissions = confirmPermissions(userPermissions);
+		return userPermissions;
+	}
+	
+	private PermissionsDTO computeBasicPermissions(List<Role> roles, int length, String appCode) {
+		PermissionsDTO userPermissions;
+		userPermissions = new PermissionsDTO();
+		RoleDTO[] strRoles = new RoleDTO[length];
+		for (int i = 0; i < length; i++) {
+			RoleDTO role = new RoleDTO();
+			role.setName(roles.get(i).getString("role_name"));
+			role.setDescription(roles.get(i).getString("description"));
+			strRoles[i] = role;
+		}
+		List<BasicPermissionDTO> totalPermissions = new ArrayList<BasicPermissionDTO>();
+		
+		for (RoleDTO role : strRoles) {
+			computeRolePermissions(totalPermissions, role, appCode);
+		}
+		if (totalPermissions.size() > 0) {
+			BasicPermissionDTO[] perms = new BasicPermissionDTO[totalPermissions.size()];
+			for (int k = 0; k < totalPermissions.size(); k++) {
+				perms[k] = totalPermissions.get(k);
+			}
+			userPermissions.setBasic(perms);
+		}
+		return userPermissions;
+	}
+
 	private PermissionsDTO confirmPermissions(PermissionsDTO userPermissions) {
 		if (userPermissions == null) {
 			userPermissions = new PermissionsDTO();
-			userPermissions.setBasic(new String[] {});
-			userPermissions.setSelf(new String[] {});
+			userPermissions.setBasic(new BasicPermissionDTO[] {});
+			userPermissions.setSelf(new SelfPermissionDTO[] {});
 		} else if (userPermissions.getBasic() != null && userPermissions.getSelf() == null) {
-			userPermissions.setSelf(new String[] {});
+			userPermissions.setSelf(new SelfPermissionDTO[] {});
 		} else if (userPermissions.getSelf() != null && userPermissions.getBasic() == null) {
-			userPermissions.setBasic(new String[] {});
+			userPermissions.setBasic(new BasicPermissionDTO[] {});
 		}
 		return userPermissions;
 	}
@@ -227,21 +327,24 @@ public class AuthServiceImpl implements AuthService {
 		return token;
 	}
 
-	private PermissionsDTO computeBasicPermissions(LoggedUserDTO logged, List<Role> roles, int length) {
+	private PermissionsDTO computeBasicPermissions(LoggedUserDTO logged, List<Role> roles, int length, String orgCode) {
 		PermissionsDTO userPermissions;
 		userPermissions = new PermissionsDTO();
-		String[] strRoles = new String[length];
+		RoleDTO[] strRoles = new RoleDTO[length];
 		for (int i = 0; i < length; i++) {
-			strRoles[i] = roles.get(i).getString("role_name");
+			RoleDTO role = new RoleDTO();
+			role.setName(roles.get(i).getString("role_name"));
+			role.setDescription(roles.get(i).getString("description"));
+			strRoles[i] = role;
 		}
 		logged.setRoles(strRoles);
-		List<String> totalPermissions = new ArrayList<>();
+		List<BasicPermissionDTO> totalPermissions = new ArrayList<BasicPermissionDTO>();
 		
-		for (String role : strRoles) {
-			computeRolePermissions(totalPermissions, role);
+		for (RoleDTO role : strRoles) {
+			computeRolePermissions(totalPermissions, role, orgCode);
 		}
 		if (totalPermissions.size() > 0) {
-			String[] perms = new String[totalPermissions.size()];
+			BasicPermissionDTO[] perms = new BasicPermissionDTO[totalPermissions.size()];
 			for (int k = 0; k < totalPermissions.size(); k++) {
 				perms[k] = totalPermissions.get(k);
 			}
@@ -250,26 +353,53 @@ public class AuthServiceImpl implements AuthService {
 		return userPermissions;
 	}
 
-	private void computeRolePermissions(List<String> totalPermissions, String role) {
+	
+	private void computeRolePermissions(List<BasicPermissionDTO> totalPermissions, RoleDTO role) {
 		List<Permission> permissions = Permission.findBySQL(
 				"select permissions.* from permissions inner join roles_permissions "
 						+ "on roles_permissions.permission_id=permissions.id "
 						+ "inner join roles on roles_permissions.role_id=roles.id inner join applications " 
 						+ "on applications.id=permissions.application_id where roles.role_name=? "
-						+ "and roles.active=? and applications.app_code=?",
-				role, 1, this.appCode);
+						+ "and roles.active=? and applications.app_code=? and roles_permissions.active=?",
+				role.getName(), 1, this.appCode, true);
 		if (permissions != null) {
 			int pemLength = permissions.size();
 			if (pemLength > 0) {
-				List<String> strPermissions = new ArrayList<>();
+				List<BasicPermissionDTO> strPermissions = new ArrayList<BasicPermissionDTO>();
 				for (int j = 0; j < pemLength; j++) {
-					strPermissions.add(permissions.get(j).getString("permission_name"));
+					BasicPermissionDTO perm = new BasicPermissionDTO();
+					perm.setName(permissions.get(j).getString("permission_name"));
+					perm.setDescription(permissions.get(j).getString("description"));
+					strPermissions.add(perm);
 				}
 				totalPermissions.addAll(strPermissions);
 			}
 		}
 	}
-
+	
+	private void computeRolePermissions(List<BasicPermissionDTO> totalPermissions, RoleDTO role, String orgCode) {
+		List<Permission> permissions = Permission.findBySQL(
+				"select permissions.* from permissions inner join roles_permissions "
+						+ "on roles_permissions.permission_id=permissions.id "
+						+ "inner join roles on roles_permissions.role_id=roles.id inner join organisations " 
+						+ "on organisations.id=roles_permissions.organisation_id where roles.role_name=? "
+						+ "and roles.active=? and organisations.code=? and roles_permissions.active=?",
+				role.getName(), 1, orgCode, true);
+		if (permissions != null) {
+			int pemLength = permissions.size();
+			if (pemLength > 0) {
+				List<BasicPermissionDTO> strPermissions = new ArrayList<BasicPermissionDTO>();
+				for (int j = 0; j < pemLength; j++) {
+					BasicPermissionDTO perm = new BasicPermissionDTO();
+					perm.setName(permissions.get(j).getString("permission_name"));
+					perm.setDescription(permissions.get(j).getString("description"));
+					strPermissions.add(perm);
+				}
+				totalPermissions.addAll(strPermissions);
+			}
+		}
+	}
+	
 	@Override
 	public Token getTokenObject(String token) throws JoseException, MalformedClaimException {
 		if (token == null) {
@@ -288,6 +418,19 @@ public class AuthServiceImpl implements AuthService {
 			}
 		}
 		throw new JoseException("Token has expired.");
+	}
+
+	@Override
+	public LoggedUserDTO getRoleAndPermission(String username, String hashedPassword, String orgCode)
+			throws InvalidCredentialsException, JoseException {
+		try {
+			LazyList<User> user = User.findBySQL("select users.* from users where username=? and "
+					+ "password=?", username, hashedPassword);
+			return addRolesAndPermissions(user.get(0), orgCode);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
 	}
 
 }

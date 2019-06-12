@@ -6,7 +6,7 @@ import org.junit.Test;
 
 public class HomeControllerSpec extends ControllerSpec {
 
-    @Test
+    //@Test
     public void shouldShowHomePage() {
         request().integrateViews().get("index");
         a(statusCode()).shouldBeEqual(200);

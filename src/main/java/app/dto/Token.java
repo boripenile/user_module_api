@@ -8,11 +8,11 @@ public class Token implements Serializable {
 
     private String username;
     
-    private String[] roles;
+    private RoleDTO[] roles;
     
-    private String[] selfPermissions;
+    private SelfPermissionDTO[] selfPermissions;
     
-    private String[] basicPermissions;
+    private BasicPermissionDTO[] basicPermissions;
     
     private long timestamp;
 
@@ -42,27 +42,27 @@ public class Token implements Serializable {
         this.timestamp = timestamp;
     }
 
-	public String[] getRoles() {
+	public RoleDTO[] getRoles() {
 		return roles;
 	}
 
-	public void setRoles(String[] roles) {
+	public void setRoles(RoleDTO[] roles) {
 		this.roles = roles;
 	}
 
-	public String[] getSelfPermissions() {
+	public SelfPermissionDTO[] getSelfPermissions() {
 		return selfPermissions;
 	}
 
-	public void setSelfPermissions(String[] selfPermissions) {
+	public void setSelfPermissions(SelfPermissionDTO[] selfPermissions) {
 		this.selfPermissions = selfPermissions;
 	}
 
-	public String[] getBasicPermissions() {
+	public BasicPermissionDTO[] getBasicPermissions() {
 		return basicPermissions;
 	}
 
-	public void setBasicPermissions(String[] basicPermissions) {
+	public void setBasicPermissions(BasicPermissionDTO[] basicPermissions) {
 		this.basicPermissions = basicPermissions;
 	}
 

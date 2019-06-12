@@ -2,25 +2,24 @@ package app.dto;
 
 public class PermissionsDTO {
 
-	private String[] basic;
+	private BasicPermissionDTO[] basic;
 	
-	private String[] self;
+	private SelfPermissionDTO[] self;
 
-	public String[] getBasic() {
+	public BasicPermissionDTO[] getBasic() {
 		return basic;
 	}
 
-	public void setBasic(String[] basic) {
+	public void setBasic(BasicPermissionDTO[] basic) {
 		this.basic = basic;
 	}
 
-	public String[] getSelf() {
+	public SelfPermissionDTO[] getSelf() {
 		return self;
 	}
 
-	public void setSelf(String[] self) {
+	public void setSelf(SelfPermissionDTO[] self) {
 		this.self = self;
 	}
-	
 	
 }

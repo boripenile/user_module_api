@@ -12,6 +12,8 @@ public interface ModelService<T> {
 	
 	public T create(T model) throws Exception;
 	
+	public boolean delete(String id) throws Exception;
+	
 	public int count() throws Exception;
 	
 	public boolean exist(String id) throws Exception;

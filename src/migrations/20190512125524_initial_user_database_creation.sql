@@ -9,9 +9,10 @@ CREATE TABLE `images` (
 
 CREATE TABLE `organisations`(
 	`id` BIGINT(11) auto_increment PRIMARY KEY,
+	`application_id` BIGINT(11) NOT NULL,
 	`code` VARCHAR(50) NOT NULL,
 	`referral_code` VARCHAR(50),
-	`parent_code` VARCHAR(50),
+	`parent_referral_code` VARCHAR(50),
 	`name` VARCHAR(50) NOT NULL,
 	`description` VARCHAR(150),
 	`motto` VARCHAR(100),
@@ -33,7 +34,6 @@ CREATE TABLE `applications`(
 	`app_version` VARCHAR(20),
 	`image_url` VARCHAR(150),
 	`image_id` BIGINT(11),
-	`organisation_id` BIGINT(11) NOT NULL,
 	`active` TINYINT(1) DEFAULT '0',
 	`latest` TINYINT(1) DEFAULT '0',
 	`created_at` DATETIME DEFAULT NULL,
@@ -79,11 +79,13 @@ CREATE TABLE `users` (
 	`first_name` VARCHAR(50),
 	`last_name` VARCHAR(50),
 	`other_name` VARCHAR(50),
+	`image_url` VARCHAR(200),
 	`email_verified` TINYINT(1) DEFAULT '0',
 	`phone_verified` TINYINT(1) DEFAULT '0',
 	`email_verified_date` DATETIME,
 	`phone_verified_date` DATETIME,
-	`verification_code` VARCHAR(10) DEFAULT NULL,
+	`phone_verification_code` VARCHAR(10) DEFAULT NULL,
+	`email_verification_code` VARCHAR(10) DEFAULT NULL,
 	`reset_password_code` VARCHAR(10) DEFAULT NULL,
 	`reset_password_request_date` DATETIME DEFAULT NULL, 
 	`reset_password_date` DATETIME DEFAULT NULL,
@@ -101,22 +103,10 @@ CREATE TABLE `users_organisations` (
 	`id` BIGINT(11) auto_increment PRIMARY KEY,
 	`user_id` BIGINT(11) NOT NULL,
 	`organisation_id` BIGINT(11) NOT NULL,
-	`created_at` DATETIME DEFAULT NULL,
-	`updated_at` DATETIME DEFAULT NULL,
-	`active` TINYINT(1) DEFAULT '1',
-	`created_by` VARCHAR(50) NOT NULL,
-	`updated_by` VARCHAR(50)
-)ENGINE=InnoDB;
-
-CREATE TABLE `users_applications` (
-	`id` BIGINT(11) auto_increment PRIMARY KEY,
-	`user_id` BIGINT(11) NOT NULL,
 	`application_id` BIGINT(11) NOT NULL,
 	`created_at` DATETIME DEFAULT NULL,
 	`updated_at` DATETIME DEFAULT NULL,
-	`active` TINYINT(1) DEFAULT '1',
-	`created_by` VARCHAR(50) NOT NULL,
-	`updated_by` VARCHAR(50)
+	`active` TINYINT(1) DEFAULT '1'
 )ENGINE=InnoDB;
 
 CREATE TABLE `roles`(
@@ -147,33 +137,30 @@ CREATE TABLE `users_roles`(
 	`id` BIGINT(11) auto_increment PRIMARY KEY,
 	`user_id` BIGINT(11) NOT NULL,
 	`role_id` BIGINT(11) NOT NULL,
+	`organisation_id` BIGINT(11) NOT NULL,
 	`created_at` DATETIME DEFAULT NULL,
 	`updated_at` DATETIME DEFAULT NULL,
-	`active` TINYINT(1) DEFAULT '1',
-	`created_by` VARCHAR(50) NOT NULL,
-	`updated_by` VARCHAR(50)
+	`active` TINYINT(1) DEFAULT '1'
 )ENGINE=InnoDB;
 
 CREATE TABLE `roles_permissions`(
 	`id` BIGINT(11) auto_increment PRIMARY KEY,
 	`role_id` BIGINT(11) NOT NULL,
 	`permission_id` BIGINT(11) NOT NULL,
+	`organisation_id` BIGINT(11) NOT NULL,
 	`created_at` DATETIME DEFAULT NULL,
 	`updated_at` DATETIME DEFAULT NULL,
-	`active` TINYINT(1) DEFAULT '1',
-	`created_by` VARCHAR(50) NOT NULL,
-	`updated_by` VARCHAR(50)
+	`active` TINYINT(1) DEFAULT '1'
 )ENGINE=InnoDB; 
 
 CREATE TABLE `users_permissions`(
 	`id` BIGINT(11) auto_increment PRIMARY KEY,
 	`user_id` BIGINT(11) NOT NULL,
 	`permission_id` BIGINT(11) NOT NULL,
+	`organisation_id` BIGINT(11) NOT NULL,
 	`created_at` DATETIME DEFAULT NULL,
 	`updated_at` DATETIME DEFAULT NULL,
-	`active` TINYINT(1) DEFAULT '1',
-	`created_by` VARCHAR(50) NOT NULL,
-	`updated_by` VARCHAR(50)
+	`active` TINYINT(1) DEFAULT '1'
 )ENGINE=InnoDB;
 
 ALTER TABLE users
@@ -184,13 +171,13 @@ ALTER TABLE organisations
 ADD CONSTRAINT FK_organisations_images
 FOREIGN KEY (image_id) REFERENCES images(id);
 
+ALTER TABLE organisations
+ADD CONSTRAINT FK_applications_organisations
+FOREIGN KEY (application_id) REFERENCES applications(id);
+
 ALTER TABLE applications
 ADD CONSTRAINT FK_applications_images
 FOREIGN KEY (image_id) REFERENCES images(id);
-
-ALTER TABLE applications
-ADD CONSTRAINT FK_applications_organisations
-FOREIGN KEY (organisation_id) REFERENCES organisations(id);
 
 ALTER TABLE users_organisations
 ADD CONSTRAINT FK_users_organisations
@@ -200,11 +187,7 @@ ALTER TABLE users_organisations
 ADD CONSTRAINT FK_organisations_users
 FOREIGN KEY (organisation_id) REFERENCES organisations(id);
 
-ALTER TABLE users_applications
-ADD CONSTRAINT FK_users_applications
-FOREIGN KEY (user_id) REFERENCES users(id);
-
-ALTER TABLE users_applications
+ALTER TABLE users_organisations
 ADD CONSTRAINT FK_applications_users
 FOREIGN KEY (application_id) REFERENCES applications(id);
 
@@ -224,6 +207,10 @@ ALTER TABLE roles_permissions
 ADD CONSTRAINT FK_permissions_roles
 FOREIGN KEY (permission_id) REFERENCES permissions(id);
 
+ALTER TABLE roles_permissions
+ADD CONSTRAINT FK_permissions_roles_organisation
+FOREIGN KEY (organisation_id) REFERENCES organisations(id);
+
 ALTER TABLE users_permissions
 ADD CONSTRAINT FK_users_permissions
 FOREIGN KEY (user_id) REFERENCES users(id);
@@ -231,6 +218,10 @@ FOREIGN KEY (user_id) REFERENCES users(id);
 ALTER TABLE users_permissions
 ADD CONSTRAINT FK_permissions_users
 FOREIGN KEY (permission_id) REFERENCES permissions(id);
+
+ALTER TABLE users_permissions
+ADD CONSTRAINT FK_permissions_users_organisation
+FOREIGN KEY (organisation_id) REFERENCES organisations(id);
 
 ALTER TABLE users_roles
 ADD CONSTRAINT FK_users_roles
@@ -240,20 +231,24 @@ ALTER TABLE users_roles
 ADD CONSTRAINT FK_roles_users
 FOREIGN KEY (role_id) REFERENCES roles(id);
 
-INSERT INTO `organisations` (`id`, `code`, `name`, `description`, `created_at`, `created_by`)
-VALUES (1, '123456', 'Youngprime Solution Ventures', 'Simplifying processes with software', NOW(), 'system');
+ALTER TABLE users_roles
+ADD CONSTRAINT FK_roles_users_organisation
+FOREIGN KEY (organisation_id) REFERENCES organisations(id);
+
+INSERT INTO `applications` (`id`, `app_code`, `app_name`, `app_description`, `app_version`, `active`, `created_at`, `created_by`)
+VALUES (1, 'CJK2233448', 'Car dealers System', 'Managing of car business.', '1.0.0', 1, NOW(), 'system');
+
+INSERT INTO `organisations` (`id`, `code`, `application_id`, referral_code, `name`, `description`, `created_at`, `created_by`)
+VALUES (1, '123456', 1, 'ABT9856FG', 'Youngprime Solution Ventures', 'Simplifying processes with software', NOW(), 'system');
 
 INSERT INTO `addresses` (`id`, `phone_number`, `created_at`, `created_by`)
-VALUES (1, '08069566914', NOW(), 'admin');
+VALUES (1, '+2348069566914', NOW(), 'admin');
 
-INSERT INTO `users` (`id`, `address_id`, `username`, `password`, `created_at`, `created_by`, `active`)
-VALUES (1, '1', 'admin', '746a5a2664633cb15829e80cc8d5dd7368b1d939756e7b069df9df482e2afc3c44029ec71ffbf7cc9916719d861b60fc34b5bd6a4f2cb0fe7747d99d5b219162', NOW(), 'system', 1);
+INSERT INTO `users` (`id`, `first_name`, `last_name`, `image_url`, `email_address`, `address_id`, `username`, `password`, `phone_verified`, `email_verified`, `created_at`, `created_by`, `active`)
+VALUES (1, 'Murtadha', 'Ali', 'http://res.cloudinary.com/boripe/image/upload/v1560089039/serve90/99654-name.jpg', 'boripe2000@gmail.com', '1', 'admin', '746a5a2664633cb15829e80cc8d5dd7368b1d939756e7b069df9df482e2afc3c44029ec71ffbf7cc9916719d861b60fc34b5bd6a4f2cb0fe7747d99d5b219162', 1, 1, NOW(), 'system', 1);
 
-INSERT INTO `users_organisations` (`id`, `user_id`, `organisation_id`, `created_at`, `created_by`)
-VALUES (1, '1', '1', NOW(), 'admin');
-
-INSERT INTO `applications` (`id`, `app_code`, `app_name`, `app_description`, `app_version`, `organisation_id`, `active`, `created_at`, `created_by`)
-VALUES (1, 'CJK2233448', 'Car dealers System', 'Managing of car business.', '1.0.0', 1, 1, NOW(), 'system');
+INSERT INTO `users_organisations` (`id`, `user_id`, `organisation_id`, `application_id`, `created_at`)
+VALUES (1, '1', '1', '1', NOW());
 
 INSERT INTO `roles` (`id`, `application_id`, `role_name`, `description`, `created_at`, `created_by`) 
 VALUES (1, 1, 'superadmin', 'Super administrator', NOW(), 'system');
@@ -279,19 +274,16 @@ VALUES (2, 1, 'roles:list', 'View all roles', NOW(), 'system');
 INSERT INTO `permissions` (`id`, `application_id`,`permission_name`, `description`, `created_at`, `created_by`) 
 VALUES (3, 1, 'roles:view', 'View a role', NOW(), 'system');
 
-INSERT INTO `users_roles` (`id`, `user_id`, `role_id`, `created_at`, `created_by`)
-VALUES (1, '1', '1', NOW(), 'system');
+INSERT INTO `users_roles` (`id`, `user_id`, `role_id`, `organisation_id`, `created_at`)
+VALUES (1, '1', '1', '1', NOW());
 
-INSERT INTO `users_applications` (`id`, `user_id`, `application_id`, `created_at`, `created_by`)
-VALUES (1, '1', '1', NOW(), 'system');
+INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `organisation_id`, `created_at`)
+VALUES (1, '1', '1', '1', NOW());
 
-INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `created_at`, `created_by`)
-VALUES (1, '1', '1', NOW(), 'system');
+INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `organisation_id`, `created_at`)
+VALUES (2, '1', '2', '1', NOW());
 
-INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `created_at`, `created_by`)
-VALUES (2, '1', '2', NOW(), 'system');
-
-INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `created_at`, `created_by`)
-VALUES (3, '1', '3', NOW(), 'system');
+INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `organisation_id`, `created_at`)
+VALUES (3, '1', '3', '1', NOW());
 
 

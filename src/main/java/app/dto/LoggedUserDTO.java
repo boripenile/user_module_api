@@ -2,6 +2,8 @@ package app.dto;
 
 import java.io.Serializable;
 
+import org.javalite.activejdbc.LazyList;
+
 import app.models.Application;
 import app.models.Organisation;
 import app.models.User;
@@ -14,13 +16,13 @@ public class LoggedUserDTO implements Serializable{
 
 	private String token;
 	
-	private String[] roles;
+	private RoleDTO[] roles;
 	
 	private PermissionsDTO permissions;
 	
 	private Application application;
 	
-	private Organisation organisation;
+	private LazyList<Organisation> organisations;
 	
 	public String getToken() {
 		return token;
@@ -38,11 +40,11 @@ public class LoggedUserDTO implements Serializable{
 		this.user = user;
 	}
 
-	public String[] getRoles() {
+	public RoleDTO[] getRoles() {
 		return roles;
 	}
 
-	public void setRoles(String[] roles) {
+	public void setRoles(RoleDTO[] roles) {
 		this.roles = roles;
 	}
 
@@ -54,12 +56,12 @@ public class LoggedUserDTO implements Serializable{
 		this.permissions = permissions;
 	}
 
-	public Organisation getOrganisation() {
-		return organisation;
+	public LazyList<Organisation> getOrganisations() {
+		return organisations;
 	}
 
-	public void setOrganisation(Organisation organisation) {
-		this.organisation = organisation;
+	public void setOrganisation(LazyList<Organisation> organisations) {
+		this.organisations = organisations;
 	}
 
 	public Application getApplication() {
