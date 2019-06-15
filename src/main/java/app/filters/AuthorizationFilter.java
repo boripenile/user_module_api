@@ -11,6 +11,7 @@ import app.dto.BasePermissionDTO;
 import app.dto.RoleDTO;
 import app.dto.Token;
 import app.services.AuthService;
+import app.utils.CommonUtil;
 
 public class AuthorizationFilter extends HttpSupportFilter {
 
@@ -24,7 +25,6 @@ public class AuthorizationFilter extends HttpSupportFilter {
 			render("/layouts/error", Collections.map("code", 200, "message", "Successful"));
 		}
 		if (header("token") != null) {
-			System.out.println("METHOD: " + getRoute().getMethod().toString());
 			String tokenStr = header("token").toString(); 
 			try {
 				Token token = authService.getTokenObject(tokenStr);
@@ -81,7 +81,13 @@ public class AuthorizationFilter extends HttpSupportFilter {
 				render("/layouts/error", Collections.map("code", 400, "message", e.getMessage() != null ? e.getMessage() : "Error occured")); 
 			} 
 		} else {
-			render("/layouts/error", Collections.map("code", 400, "message", "Token is requied in the header"));
+			if (header("action") != null && header("action").toString().equalsIgnoreCase("registerUser")) {
+				return;
+			} else if (header("action") != null && header("action").toString().equalsIgnoreCase("verifyUserEmail")) {
+				return;
+			} else {
+				render("/layouts/error", Collections.map("code", 400, "message", "Token is requied in the header"));
+			}
 		}
 	}
 	

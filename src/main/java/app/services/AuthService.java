@@ -14,6 +14,8 @@ public interface AuthService {
 
 	 	public LoggedUserDTO login(String username, String password, String appCode) throws InvalidCredentialsException, JoseException;
 
+	 	public LoggedUserDTO login(String username, String appCode) throws InvalidCredentialsException, JoseException;
+	 	
 	 	public LoggedUserDTO getRoleAndPermission(String username, String hassPassword, String orgCode) throws InvalidCredentialsException, JoseException;
 
 	    public String getToken(String username, String orgCode) throws JoseException, InvalidCredentialsException;

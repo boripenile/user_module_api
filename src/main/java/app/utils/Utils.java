@@ -101,7 +101,7 @@ public class Utils {
 	}
 	
 	public static void sendVerificationSMS(String[] numbers, 
-			String verificationCode, Boolean isResetPassword, Boolean requestPassword, String appShortName) {
+			String verificationCode, Boolean isResetPassword, Boolean requestPassword, String appShortName) throws Exception{
 		StringBuilder appender = new StringBuilder();
 		appender.append(appShortName);
 		Sms sms = new Sms();
@@ -131,7 +131,7 @@ public class Utils {
 		SmsService.sendSMS(sms);
 	}
 	
-	public static void sendResetPasswordSMS(String[] numbers, String appShortName) {
+	public static void sendResetPasswordSMS(String[] numbers, String appShortName) throws Exception{
 		StringBuilder appender = new StringBuilder();
 		appender.append(appShortName);
 		Sms sms = new Sms();
@@ -141,7 +141,7 @@ public class Utils {
 		SmsService.sendSMS(sms);
 	}
 	
-	public static void sendRegistrationCompleteSMS(String[] numbers, String appShortName) {
+	public static void sendRegistrationCompleteSMS(String[] numbers, String appShortName) throws Exception{
 		StringBuilder appender = new StringBuilder();
 		appender.append(appShortName);
 		Sms sms = new Sms();
@@ -150,6 +150,7 @@ public class Utils {
 		sms.setMessage("Your registration has been completed successfully " + "on " + appShortName + ".\nWelcome on board!");
 		SmsService.sendSMS(sms);
 	}
+	
 	public static void main(String[] args) {
 		//System.out.println(Utils.INSTANCE.genVerificationCode());
 	}

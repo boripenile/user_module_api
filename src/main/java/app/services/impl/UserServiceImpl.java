@@ -1,23 +1,48 @@
 package app.services.impl;
 
 import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+
+import javax.mail.MessagingException;
 
 import org.javalite.activejdbc.LazyList;
+import org.joda.time.DateTime;
 
-import app.dto.ExtraData;
-import app.dto.ImageDTO;
+import com.google.inject.Inject;
+
+import app.dto.LoggedUserDTO;
 import app.dto.PasswordParams;
 import app.dto.RegistrationDTO;
+import app.mail.EmailService;
+import app.mail.Mail;
 import app.models.Address;
 import app.models.Application;
 import app.models.Organisation;
 import app.models.Role;
 import app.models.User;
+import app.models.UsersOrganisations;
+import app.models.UsersRoles;
+import app.services.AuthService;
 import app.services.UserService;
 import app.utils.CommonUtil;
+import app.utils.HashPassword;
 import app.utils.Utils;
+import freemarker.template.TemplateException;
 
 public class UserServiceImpl implements UserService {
+
+	@Inject
+	private AuthService authService;
+
+	static Properties properties = null;
+
+	static {
+		properties = CommonUtil.loadPropertySettings("mail");
+	}
 
 	@Override
 	public LazyList<?> findAll() throws Exception {
@@ -51,9 +76,9 @@ public class UserServiceImpl implements UserService {
 				return model;
 			}
 			return model;
-		} catch(Exception e) {
+		} catch (Exception e) {
 			throw new Exception(e);
-		} finally { 
+		} finally {
 		}
 	}
 
@@ -64,9 +89,9 @@ public class UserServiceImpl implements UserService {
 				return model;
 			}
 			return model;
-		} catch(Exception e) {
+		} catch (Exception e) {
 			throw new Exception(e);
-		} finally { 
+		} finally {
 		}
 	}
 
@@ -107,152 +132,227 @@ public class UserServiceImpl implements UserService {
 	}
 
 	@Override
-	public void registerUser(RegistrationDTO registration) throws Exception {
-		try {
-			// Start
-			if (registration.getAppCode() != null) {
-				Application application = checkApplication(registration.getAppCode());
+	public String registerUser(RegistrationDTO registration) throws Exception {
+		if (!CommonUtil.checkInternetConnectivity()) {
+			throw new Exception("No internet connectivity.");
+		}
+		if (registration.getAppCode() != null) {
+			LazyList<Role> roles = null;
+			Organisation myOrganisation = null;
+			if (registration.getOrganisationCode() != null && registration.getRoleName() != null) {
+				myOrganisation = checkOrganisation(registration.getOrganisationCode());
+				roles = Role.findBySQL("select roles.* from roles where roles.role_name=?", registration.getRoleName());
+			} else {
 				if (registration.getOrganisation() != null) {
-					String parentReferralCode = null;
-					if (registration.getOrganisation().getReferralCode() != null) {
-						if (parentReferralCodeExist(registration.getOrganisation().getReferralCode())) {
-							parentReferralCode = registration.getOrganisation().getReferralCode();
-						}
-					}
-					if (registration.getEmailAddress() != null && registration.getPhoneNumber() != null 
-							&& registration.getUsername() != null) {
-						
-						checkEmailAndUsername(registration);
-						checkPhoneNumber(registration);
-						
-						Address address = new Address();
-						address.set("phone_number", registration.getPhoneNumber());
-						address.set("created_by", registration.getUsername());
-						
-						if (address.save()) {
-							String organisationCode = Utils.genOrganisationCode();
-							String referralCode = Utils.genReferralCode();
-							Organisation organisation = new Organisation();
-							
-							if (registration.getOrganisation().getImage() != null) {
-								String imageUrl = CommonUtil.uploadImageRemotely(registration.getOrganisation().getImage(), 
-										organisationCode);
-								organisation.set("image_url", imageUrl);
-							}
-							
-							organisation.set("code", organisationCode);
-							organisation.set("referral_code", referralCode);
-							organisation.set("name", registration.getOrganisation().getOrganisationName());
-							organisation.set("description", registration.getOrganisation().getWorkingDescription());
-							organisation.set("motto", registration.getOrganisation().getMotto() != null ? 
-									registration.getOrganisation().getMotto() : null);
-							organisation.set("parent_referral_code", parentReferralCode != null ? parentReferralCode : null);
-							organisation.set("created_by", registration.getUsername());
-							
-							if (!organisation.save()) {
-								throw new Exception("Unable to save organisation provided. Please try again");
-							}
-							
-							User user = new User();
-							user.set("username", registration.getUsername());
-							user.set("email_address", registration.getEmailAddress());
-							user.set("first_name", registration.getFirstName());
-							user.set("last_name", registration.getLastName());
-							user.setParent(address);
-							user.save();
-							
-							
-						}
-					}else {
-						throw new Exception("Email address, phone number and username are required.");
-					}
-				} else if (registration.getOrganisationCode() != null) {
-					Organisation myOrganisation = checkOrganisation(registration.getOrganisationCode());
-				} else {
-					// add user to the top organisation
-					
+					roles = Role.findBySQL("select roles.* from roles where roles.role_name=?", "admin");
 				}
 			}
-			
-			// Check if email address, phone number and username already existed.
-			// Check if organisation object is present, 
-			// then check if organisation name already taken.
-			// Send phone verification code to the phone number
-			// Send email address verification code to the email address
-			// Save the organisation
-			// Save address for organisation using phone number
-			// Save using information
-			// End
+			int length = roles.size();
+
+			if (registration.getEmailAddress() != null && registration.getPhoneNumber() != null
+					&& registration.getUsername() != null && registration.getPassword() != null) {
+
+				Application application = checkApplication(registration.getAppCode());
+
+				checkEmailAndUsername(registration);
+				checkPhoneNumber(registration);
+
+				String verificationCodePhone = Utils.genVerificationCode();
+				String verificationCodeEmail = Utils.genVerificationCode();
+
+				Utils.sendVerificationSMS(new String[] { registration.getPhoneNumber().trim() }, verificationCodePhone,
+						Boolean.FALSE, Boolean.FALSE, "APP");
+
+				boolean sent = sendVerificationEmail(registration, application, verificationCodeEmail);
+
+				if (sent) {
+					if (registration.getOrganisation() != null) {
+						Organisation organisation = createOrganistion(registration);
+						return createUserDetails(registration, roles, application, organisation, verificationCodePhone,
+								verificationCodeEmail);
+					} else if (myOrganisation != null) {
+						return createUserDetails(registration, roles, application, myOrganisation,
+								verificationCodePhone, verificationCodeEmail);
+					}
+				}
+			} else {
+				throw new Exception("Email address, phone number and username are required.");
+			}
+		} else {
 			throw new Exception("Application code is required.");
-		} catch(Exception e) {
-			throw new Exception(e);
+		}
+		return null;
+	}
+
+	private boolean sendVerificationEmail(RegistrationDTO registration, Application application,
+			String verificationCodeEmail) throws MessagingException, IOException, TemplateException {
+		Mail mail = new Mail();
+		mail.setTo(registration.getEmailAddress());
+		mail.setSubject("Verify Email");
+		Map<String, Object> model = new HashMap<>();
+		model.put("app_name", application.get("app_name"));
+		model.put("action_url", properties.getProperty("verify_email_url") + verificationCodeEmail);
+		mail.setModel(model);
+		return EmailService.sendSimpleMessage(mail, "verify-email.ftl");
+	}
+
+	private Organisation createOrganistion(RegistrationDTO registration) throws Exception, IOException {
+		String parentReferralCode = null;
+		if (registration.getOrganisation().getReferralCode() != null) {
+			if (parentReferralCodeExist(registration.getOrganisation().getReferralCode())) {
+				parentReferralCode = registration.getOrganisation().getReferralCode();
+			}
+		}
+		String organisationCode = Utils.genOrganisationCode();
+		String referralCode = Utils.genReferralCode();
+		Organisation organisation = new Organisation();
+
+		if (registration.getOrganisation().getImage() != null) {
+			String imageUrl = CommonUtil.uploadImageRemotely(registration.getOrganisation().getImage(),
+					organisationCode);
+			organisation.set("image_url", imageUrl);
+		}
+		organisation.set("code", organisationCode);
+		organisation.set("referral_code", referralCode);
+		organisation.set("name", registration.getOrganisation().getOrganisationName());
+		organisation.set("description", registration.getOrganisation().getWorkingDescription());
+		organisation.set("motto",
+				registration.getOrganisation().getMotto() != null ? registration.getOrganisation().getMotto() : null);
+		organisation.set("parent_referral_code", parentReferralCode != null ? parentReferralCode : null);
+		organisation.set("created_by", registration.getUsername());
+
+		if (!organisation.save()) {
+			throw new Exception("Unable to save organisation provided. Please try again");
+		}
+		return organisation;
+	}
+
+	private String createUserDetails(RegistrationDTO registration, LazyList<Role> roles, Application application,
+			Organisation organisation, String verificationCodePhone, String verificationCodeEmail) {
+		Address address = new Address();
+		address.set("phone_number", registration.getPhoneNumber());
+		address.set("created_by", registration.getUsername());
+		if (address.save()) {
+			User user = new User();
+			user.set("username", registration.getUsername());
+			try {
+				user.set("password", HashPassword.hashPassword(registration.getPassword()));
+			} catch (NoSuchAlgorithmException e) {
+				e.printStackTrace();
+			}
+			user.set("email_address", registration.getEmailAddress());
+			user.set("first_name", registration.getFirstName());
+			user.set("last_name", registration.getLastName());
+			user.set("phone_verification_code", verificationCodePhone);
+			user.set("email_verification_code", verificationCodeEmail);
+			user.set("verification_expired_date", getExpiryDate());
+			user.set("created_by", registration.getUsername());
+			user.set("active", 0);
+			user.setParent(address);
+			if (user.save()) {
+				UsersOrganisations usersOrgs = new UsersOrganisations();
+				usersOrgs.set("user_id", user.getId());
+				usersOrgs.set("organisation_id", organisation.getId());
+				usersOrgs.set("application_id", application.getId());
+				if (usersOrgs.save()) {
+					UsersRoles userRole = new UsersRoles();
+					userRole.set("user_id", user.getId());
+					userRole.set("role_id", roles.get(0).getId());
+					userRole.set("organisation_id", organisation.getId());
+					if (userRole.save()) {
+						return "Verification code sent to your phone number and email address. ";
+					}
+				}
+			} else {
+				address.delete();
+			}
+		}
+		return "Unable to complete registration. Please try again";
+	}
+
+	private Date getExpiryDate() {
+		DateTime expiryDate = DateTime.now();
+		int days = 7;
+		DateTime increasedDate = expiryDate.plusDays(days);
+		return increasedDate.toDate();
+	}
+
+	private void checkEmailAndUsername(RegistrationDTO registration) throws Exception {
+		User existedUser = User.findFirst("email_address=? or username=?", registration.getEmailAddress(),
+				registration.getUsername());
+		System.out.println(existedUser);
+		if (existedUser != null) {
+			System.out.println("Existing user");
+			throw new Exception("Email address or username already exist.");
+		} else {
+			return;
 		}
 	}
 
-	private void checkEmailAndUsername(RegistrationDTO registration) throws Exception{
-		try {
-			User existedUser = User.findFirst("email_address=? and username=?", registration.getEmailAddress(), 
-					registration.getUsername());
-			if (existedUser != null) {
-				throw new Exception("Email address and username already exist.");
-			}
-		} catch (Exception e) {
+	private void checkPhoneNumber(RegistrationDTO registration) throws Exception {
+		Address existedAddress = Address.findFirst("phone_number=?", registration.getPhoneNumber());
+		System.out.println(existedAddress);
+		if (existedAddress != null) {
+			System.out.println("Phone number");
+			throw new Exception("Phone number already exist.");
+		} else {
+			return;
 		}
 	}
-	
-	private void checkPhoneNumber(RegistrationDTO registration) throws Exception{
-		try {
-			Address existedAddress = Address.findFirst("phone_number=?", registration.getPhoneNumber());
-			if (existedAddress != null) {
-				throw new Exception("Phone number already exist.");
-			}
-		} catch (Exception e) {
-		}
-	}
-	
-	private Application checkApplication(String appCode) throws Exception{
-		try {
-			Application application = Application.findFirst("app_code=?", appCode);
-			if (application != null) {
-				return application;
-			}
-			
-		} catch (Exception e) {
+
+	private Application checkApplication(String appCode) throws Exception {
+		Application application = Application.findFirst("app_code=?", appCode);
+		if (application != null) {
+			return application;
 		}
 		throw new Exception("Application does not exist.");
 	}
-	
-	private Organisation checkOrganisation(String organisationCode) throws Exception{
-		try {
-			Organisation organisation = Organisation.findFirst("code=?", organisationCode);
-			if (organisation != null) {
-				return organisation;
-			}
-		} catch (Exception e) {
+
+	private Organisation checkOrganisation(String organisationCode) throws Exception {
+		Organisation organisation = Organisation.findFirst("code=?", organisationCode);
+		if (organisation != null) {
+			return organisation;
 		}
 		throw new Exception("Organisation does not exist.");
 	}
-	
-	private boolean parentReferralCodeExist(String parentReferralCode) throws Exception{
-		try {
-			Organisation organisation = Organisation.findFirst("parent_referral_code=?", parentReferralCode);
-			if (organisation != null) {
-				return true;
-			}
-		} catch (Exception e) {
+
+	private boolean parentReferralCodeExist(String parentReferralCode) throws Exception {
+		Organisation organisation = Organisation.findFirst("parent_referral_code=?", parentReferralCode);
+		if (organisation != null) {
+			return true;
 		}
 		throw new Exception("Referral code does not exist.");
 	}
-	@Override
-	public void verifyPhoneNumber(String verificationCode) throws Exception {
-		// TODO Auto-generated method stub
 
+	@Override
+	public String verifyPhoneNumber(String verificationCode) throws Exception {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	@Override
-	public void verifyEmailAddress(String verificationCode) throws Exception {
-		// TODO Auto-generated method stub
-
+	public LoggedUserDTO verifyEmailAddress(String verificationCode, String appCode) throws Exception {
+		if (verificationCode == null) {
+			throw new Exception("Email verification code is required");
+		}
+		if (verificationCode.length() < 6 || verificationCode.length() > 6) {
+			throw new Exception("Invalid email verification code");
+		}
+		LazyList<User> users = User.findBySQL("select users.* from users where email_verification_code=?",
+				verificationCode);
+		int length = users.size();
+		if (length == 0) {
+			throw new Exception("Email verification code does not exist or has been verified by you.");
+		}
+		User user = users.get(0);
+		user.set("email_verified_date", new Date());
+		user.set("email_verification_code", null);
+		user.set("email_verified", true);
+		user.set("active", true);
+		if (user.save()) {
+			return authService.login(user.getString("username"), appCode);
+		}
+		throw new Exception("Invalid email verification code or it has been verified");
 	}
 
 	@Override
@@ -262,9 +362,9 @@ public class UserServiceImpl implements UserService {
 	}
 
 	@Override
-	public void requestPasswordChangeUsingEmailAddress(String emailAddress) throws Exception {
+	public String requestPasswordChangeUsingEmailAddress(String emailAddress) throws Exception {
 		// TODO Auto-generated method stub
-
+		return null;
 	}
 
 	@Override
@@ -275,8 +375,15 @@ public class UserServiceImpl implements UserService {
 
 	@Override
 	public LazyList<User> getUsersByOrganisationCode(String organisationCode) throws Exception {
-		// TODO Auto-generated method stub
-		return null;
+		try {
+			LazyList<User> users = User.findBySQL("select users.* from users inner join users_organisations "
+					+ "on users.id=users_organisations.user_id inner join organisations on "
+					+ "organisations.id=users_organisations.organisation_id where organisations.code=? "
+					+ "and organisations.active=?", organisationCode, 1);
+			return users;
+		} catch (Exception e) {
+			throw new Exception("No users found for the organisation code provided");
+		}
 	}
 
 }

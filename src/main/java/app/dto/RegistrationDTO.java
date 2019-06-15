@@ -8,6 +8,8 @@ public class RegistrationDTO {
 	
 	private String username;
 	
+	private String password;
+	
 	private String firstName;
 	
 	private String lastName;
@@ -16,6 +18,8 @@ public class RegistrationDTO {
 	
 	private String phoneNumber;
 
+	private String roleName;
+	
 	private OrganisationRegistrationDTO organisation;
 	
 	public String getAppCode() {
@@ -81,5 +85,21 @@ public class RegistrationDTO {
 	public void setOrganisationCode(String organisationCode) {
 		this.organisationCode = organisationCode;
 	}
-	
+
+	public String getRoleName() {
+		return roleName;
+	}
+
+	public void setRoleName(String roleName) {
+		this.roleName = roleName;
+	}
+
+	public String getPassword() {
+		return password;
+	}
+
+	public void setPassword(String password) {
+		this.password = password;
+	}
+
 }

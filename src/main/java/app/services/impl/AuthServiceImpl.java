@@ -40,12 +40,22 @@ public class AuthServiceImpl implements AuthService {
 	public LoggedUserDTO login(String username, String password, String appCode) throws InvalidCredentialsException, JoseException {
 		try {
 			this.appCode = appCode;
-			String hashedPassword = HashPassword.hashPassword(password);
-			LazyList<User> user = User.findBySQL("select users.* from users inner join users_organisations "
-					+ "on users_organisations.user_id=users.id inner join applications on "
-					+ "applications.id=users_organisations.application_id inner join organisations on "
-					+ "organisations.id=users_organisations.organisation_id where username=? and "
-					+ "password=? and applications.app_code=?", username, hashedPassword, this.appCode);
+			LazyList<User> user = null;
+			if (password != null) {
+				String hashedPassword = HashPassword.hashPassword(password);
+				user = User.findBySQL("select users.* from users inner join users_organisations "
+						+ "on users_organisations.user_id=users.id inner join applications on "
+						+ "applications.id=users_organisations.application_id inner join organisations on "
+						+ "organisations.id=users_organisations.organisation_id where username=? or email_address=? and "
+						+ "password=? and applications.app_code=?", username, username, hashedPassword, this.appCode);
+			} else {
+				user = User.findBySQL("select users.* from users inner join users_organisations "
+						+ "on users_organisations.user_id=users.id inner join applications on "
+						+ "applications.id=users_organisations.application_id inner join organisations on "
+						+ "organisations.id=users_organisations.organisation_id where username=? or email_address=? "
+						+ "and applications.app_code=?", username, username, this.appCode);
+			}
+			
 			if (user.size() > 0) {
 				if (user.get(0).getBoolean("active") == Boolean.FALSE) {
 					throw new InvalidCredentialsException("Your account has been disabled. Please contact your administrator.");
@@ -65,10 +75,11 @@ public class AuthServiceImpl implements AuthService {
 				if (app != null) {
 					LazyList<Organisation> organisations = Organisation.findBySQL("select organisations.* from organisations "
 							+ "inner join applications on applications.id=organisations.application_id inner join users_organisations "
-							+ "on users_organisations.application_id=applications.id "
+							+ "on users_organisations.application_id=applications.id inner join users on "
+							+ "users.id=users_organisations.user_id "
 							+ "where applications.app_code=? and applications.active=? "
-							+ "and users_organisations.organisation_id=organisations.id", 
-							this.appCode, 1);
+							+ "and users_organisations.organisation_id=organisations.id and users.id=?", 
+							this.appCode, 1, user.get(0).get("id"));
 					if (organisations != null) {
 						if (organisations.size() == 1) {
 							loggedUser = addRolesAndPermissions(user.get(0), organisations.get(0).getString("code"));
@@ -123,7 +134,7 @@ public class AuthServiceImpl implements AuthService {
 	@Override
 	public String generateToken(String username, String orgCode) throws JoseException, InvalidCredentialsException {
 		try {
-			User user = User.findFirst("username=? and active=?", username, 1);
+			User user = User.findFirst("username=? or email_address=? and active=?", username, username, 1);
 			String token = addRolesAndPermissions(user, orgCode).getToken();
 			return token;
 		} finally {
@@ -135,7 +146,8 @@ public class AuthServiceImpl implements AuthService {
 	public boolean isValid(String username, String password) {
 		try {
 			//Base.open();
-			return User.findFirst("username=? and password=?", username, HashPassword.hashPassword(password)) == null
+			return User.findFirst("username=? or email_address=? and password=?", username, username, 
+					HashPassword.hashPassword(password)) == null
 					? false
 					: true;
 		} catch (NoSuchAlgorithmException e) {
@@ -424,13 +436,19 @@ public class AuthServiceImpl implements AuthService {
 	public LoggedUserDTO getRoleAndPermission(String username, String hashedPassword, String orgCode)
 			throws InvalidCredentialsException, JoseException {
 		try {
-			LazyList<User> user = User.findBySQL("select users.* from users where username=? and "
-					+ "password=?", username, hashedPassword);
+			LazyList<User> user = User.findBySQL("select users.* from users where username=? or email_address=? and "
+					+ "password=?", username, username, hashedPassword);
 			return addRolesAndPermissions(user.get(0), orgCode);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return null;
+	}
+
+	@Override
+	public LoggedUserDTO login(String username, String appCode) throws InvalidCredentialsException, JoseException {
+		// TODO Auto-generated method stub
+		return login(username, null, appCode);
 	}
 
 }
