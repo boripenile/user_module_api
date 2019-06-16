@@ -85,6 +85,8 @@ public class AuthorizationFilter extends HttpSupportFilter {
 				return;
 			} else if (header("action") != null && header("action").toString().equalsIgnoreCase("verifyUserEmail")) {
 				return;
+			} else if (header("action") != null && header("action").toString().equalsIgnoreCase("validateReferralCode")) {
+				return;
 			} else {
 				render("/layouts/error", Collections.map("code", 400, "message", "Token is requied in the header"));
 			}

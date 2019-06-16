@@ -76,7 +76,7 @@ public class Utils {
 			nextId = new BigInteger(50, random).toString(15);
 			extractDigits = "";
 		}
-		return extractDigits;
+		return extractDigits.toUpperCase();
 	}
 	
 	public static String genTaskReference () {

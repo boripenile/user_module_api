@@ -45,12 +45,16 @@ public class UsersController extends AppController {
 			String actionName = header("action").toString();
 			switch (actionName) {
 			case "registerUser":
-				System.out.println("I am calling function registerUser()");
+				logInfo("I am calling function registerUser()");
 				registerUser();
 				break;
 			case "verifyUserEmail":
-				System.out.println("I am calling function verifyUserEmail()");
+				logInfo("I am calling function verifyUserEmail()");
 				verifyUserEmail();
+				break;
+			case "validateReferralCode":
+				logInfo("I am calling function validateReferralCode()");
+				validateReferralCode();
 				break;
 			default:
 				break;
@@ -100,6 +104,26 @@ public class UsersController extends AppController {
 				}
 			} else {
 				view("code", 400, "message", "verify_code and app_code are required as header parameters");
+				render("error");
+			}
+		} catch (Exception e) {
+			logError(e.toString(), e);
+			view("code", 400, "message", e.getMessage() != null ? e.getMessage() : "Error occured");
+			render("error");
+		}
+	}
+	
+	public void validateReferralCode() {
+		try {
+			if (header("referral_code") != null && header("app_code") != null) {
+				String referralCode = header("referral_code").toString();
+				boolean result = userService.validateReferralCode(referralCode);
+				if (result) {
+					view("code", 200, "message", "validated");
+					render("error");
+				}
+			} else {
+				view("code", 400, "message", "referral_code and app_code are required as header parameters");
 				render("error");
 			}
 		} catch (Exception e) {

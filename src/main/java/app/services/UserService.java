@@ -24,4 +24,6 @@ public interface UserService extends ModelService<User>{
 	 
 	 public LazyList<User> getUsersByOrganisationCode(String organisationCode) throws Exception;
 	 
+	 public boolean validateReferralCode(String referralCode) throws Exception;
+	 
 }

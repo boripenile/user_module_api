@@ -147,8 +147,11 @@ public class UserServiceImpl implements UserService {
 					roles = Role.findBySQL("select roles.* from roles where roles.role_name=?", "admin");
 				}
 			}
+			
 			int length = roles.size();
-
+			if (length == 0) {
+				throw new Exception("Invalid role name");
+			}
 			if (registration.getEmailAddress() != null && registration.getPhoneNumber() != null
 					&& registration.getUsername() != null && registration.getPassword() != null) {
 
@@ -167,7 +170,7 @@ public class UserServiceImpl implements UserService {
 
 				if (sent) {
 					if (registration.getOrganisation() != null) {
-						Organisation organisation = createOrganistion(registration);
+						Organisation organisation = createOrganistion(registration, application);
 						return createUserDetails(registration, roles, application, organisation, verificationCodePhone,
 								verificationCodeEmail);
 					} else if (myOrganisation != null) {
@@ -196,7 +199,7 @@ public class UserServiceImpl implements UserService {
 		return EmailService.sendSimpleMessage(mail, "verify-email.ftl");
 	}
 
-	private Organisation createOrganistion(RegistrationDTO registration) throws Exception, IOException {
+	private Organisation createOrganistion(RegistrationDTO registration, Application application) throws Exception, IOException {
 		String parentReferralCode = null;
 		if (registration.getOrganisation().getReferralCode() != null) {
 			if (parentReferralCodeExist(registration.getOrganisation().getReferralCode())) {
@@ -220,7 +223,7 @@ public class UserServiceImpl implements UserService {
 				registration.getOrganisation().getMotto() != null ? registration.getOrganisation().getMotto() : null);
 		organisation.set("parent_referral_code", parentReferralCode != null ? parentReferralCode : null);
 		organisation.set("created_by", registration.getUsername());
-
+		organisation.setParent(application);
 		if (!organisation.save()) {
 			throw new Exception("Unable to save organisation provided. Please try again");
 		}
@@ -317,7 +320,7 @@ public class UserServiceImpl implements UserService {
 	}
 
 	private boolean parentReferralCodeExist(String parentReferralCode) throws Exception {
-		Organisation organisation = Organisation.findFirst("parent_referral_code=?", parentReferralCode);
+		Organisation organisation = Organisation.findFirst("referral_code=?", parentReferralCode);
 		if (organisation != null) {
 			return true;
 		}
@@ -380,9 +383,28 @@ public class UserServiceImpl implements UserService {
 					+ "on users.id=users_organisations.user_id inner join organisations on "
 					+ "organisations.id=users_organisations.organisation_id where organisations.code=? "
 					+ "and organisations.active=?", organisationCode, 1);
-			return users;
+			if (users.size() == 0) {
+				throw new Exception("No users found for the organisation code provided");
+			} else {
+				return users;
+			}
 		} catch (Exception e) {
 			throw new Exception("No users found for the organisation code provided");
+		}
+	}
+
+	@Override
+	public boolean validateReferralCode(String referralCode) throws Exception {
+		try {
+			LazyList<Organisation> organisations = Organisation.findBySQL("select organisations.* from organisations"
+					+ " where organisations.referral_code=? and organisations.active=?", referralCode, 1);
+			if (organisations.size() == 0) {
+				throw new Exception("We cannot verify the referral code. Please check it.");
+			} else {
+				return true;
+			}
+		} catch (Exception e) {
+			throw new Exception("We cannot verify the referral code. Please check it.");
 		}
 	}
 
