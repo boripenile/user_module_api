@@ -100,6 +100,9 @@ public class RolesController extends AppController {
 			case "findPermissionsByRoleId":
 				findPermissionsByRoleId();
 				break;
+			case "findRoleNotSuper":
+				findRoleNotSuper();
+				break;
 			default:
 				break;
 			}
@@ -123,6 +126,22 @@ public class RolesController extends AppController {
 		}
 	}
 
+	public void findRoleNotSuper() {
+		try {
+			LazyList<?> roles = roleService.findRolesNotSuper();
+			if (roles != null) {
+				view("code", 200, "data", roles.toJson(true));
+				render("message");
+			} else {
+				view("code", 400, "message", "No roles");
+				render("error");
+			}
+		} catch (Exception e) {
+			logError(e.toString(), e);
+			view("code", 400, "message", e.getMessage() != null ? e.getMessage() : "Error occured");
+			render("error");
+		}
+	}
 	public void view() {
 		try {
 			if (header("id") != null) {

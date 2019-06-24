@@ -236,16 +236,18 @@ ADD CONSTRAINT FK_roles_users_organisation
 FOREIGN KEY (organisation_id) REFERENCES organisations(id);
 
 INSERT INTO `applications` (`id`, `app_code`, `app_name`, `app_description`, `app_version`, `active`, `created_at`, `created_by`)
-VALUES (1, 'CJK2233448', 'Car dealers System', 'Managing of car business.', '1.0.0', 1, NOW(), 'system');
+VALUES (1, 'CJK2233448', 'Hotels and Catering Services System', 'Managing of hotels and catering services', '1.0.0', 1, NOW(), 'system');
 
 INSERT INTO `organisations` (`id`, `code`, `application_id`, referral_code, `name`, `description`, `created_at`, `created_by`)
 VALUES (1, '123456', 1, 'ABT9856FG', 'Youngprime Solution Ventures', 'Simplifying processes with software', NOW(), 'system');
 
 INSERT INTO `addresses` (`id`, `phone_number`, `created_at`, `created_by`)
-VALUES (1, '+2348069566914', NOW(), 'admin');
+VALUES (1, '2348030000008', NOW(), 'admin');
+
+--password=hashPassword("password01")
 
 INSERT INTO `users` (`id`, `first_name`, `last_name`, `image_url`, `email_address`, `address_id`, `username`, `password`, `phone_verified`, `email_verified`, `created_at`, `created_by`, `active`)
-VALUES (1, 'Murtadha', 'Ali', 'http://res.cloudinary.com/boripe/image/upload/v1560089039/serve90/99654-name.jpg', 'boripe2000@gmail.com', '1', 'admin', '746a5a2664633cb15829e80cc8d5dd7368b1d939756e7b069df9df482e2afc3c44029ec71ffbf7cc9916719d861b60fc34b5bd6a4f2cb0fe7747d99d5b219162', 1, 1, NOW(), 'system', 1);
+VALUES (1, 'Murtadha', 'Ali', 'http://res.cloudinary.com/boripe/image/upload/v1560089039/serve90/99654-name.jpg', 'admin@email.com', '1', 'admin', '746a5a2664633cb15829e80cc8d5dd7368b1d939756e7b069df9df482e2afc3c44029ec71ffbf7cc9916719d861b60fc34b5bd6a4f2cb0fe7747d99d5b219162', 1, 1, NOW(), 'system', 1);
 
 INSERT INTO `users_organisations` (`id`, `user_id`, `organisation_id`, `application_id`, `created_at`)
 VALUES (1, '1', '1', '1', NOW());
@@ -274,16 +276,166 @@ VALUES (2, 1, 'roles:list', 'View all roles', NOW(), 'system');
 INSERT INTO `permissions` (`id`, `application_id`,`permission_name`, `description`, `created_at`, `created_by`) 
 VALUES (3, 1, 'roles:view', 'View a role', NOW(), 'system');
 
+INSERT INTO `permissions` (`id`, `application_id`,`permission_name`, `description`, `created_at`, `created_by`) 
+VALUES (4, 1, 'roles:updateRole', 'Update role', NOW(), 'system');
+
+INSERT INTO `permissions` (`id`, `application_id`,`permission_name`, `description`, `created_at`, `created_by`) 
+VALUES (5, 1, 'roles:createRole', 'Create role', NOW(), 'system');
+
+INSERT INTO `permissions` (`id`, `application_id`,`permission_name`, `description`, `created_at`, `created_by`) 
+VALUES (6, 1, 'roles:deleteRole', 'Delete role', NOW(), 'system');
+
+INSERT INTO `permissions` (`id`, `application_id`,`permission_name`, `description`, `created_at`, `created_by`) 
+VALUES (7, 1, 'roles:addUsersToRoles', 'Add users to roles', NOW(), 'system');
+
+INSERT INTO `permissions` (`id`, `application_id`,`permission_name`, `description`, `created_at`, `created_by`) 
+VALUES (8, 1, 'roles:addPermissionsToRoles', 'Add permissions to roles', NOW(), 'system');
+
+INSERT INTO `permissions` (`id`, `application_id`,`permission_name`, `description`, `created_at`, `created_by`) 
+VALUES (9, 1, 'roles:removeUsersFromRoles', 'Remove users from roles', NOW(), 'system');
+
+INSERT INTO `permissions` (`id`, `application_id`,`permission_name`, `description`, `created_at`, `created_by`) 
+VALUES (10, 1, 'roles:removeRolesFromUsers', 'Remove roles from users', NOW(), 'system');
+
+INSERT INTO `permissions` (`id`, `application_id`,`permission_name`, `description`, `created_at`, `created_by`) 
+VALUES (11, 1, 'roles:removePermissionsFromRoles', 'Remove permissions from roles', NOW(), 'system');
+
+INSERT INTO `permissions` (`id`, `application_id`,`permission_name`, `description`, `created_at`, `created_by`) 
+VALUES (12, 1, 'roles:updateUsersRoles', 'Update users roles', NOW(), 'system');
+
+INSERT INTO `permissions` (`id`, `application_id`,`permission_name`, `description`, `created_at`, `created_by`) 
+VALUES (13, 1, 'roles:updateUsersPermissions', 'Update users permissions', NOW(), 'system');
+
+INSERT INTO `permissions` (`id`, `application_id`,`permission_name`, `description`, `created_at`, `created_by`) 
+VALUES (14, 1, 'roles:updateRolesPermissions', 'Update roles permissions', NOW(), 'system');
+
+INSERT INTO `permissions` (`id`, `application_id`,`permission_name`, `description`, `created_at`, `created_by`) 
+VALUES (15, 1, 'roles:findUserPermissionsByUserId', 'Find user permissions', NOW(), 'system');
+
+INSERT INTO `permissions` (`id`, `application_id`,`permission_name`, `description`, `created_at`, `created_by`) 
+VALUES (16, 1, 'roles:findUserRolesByUserId', 'Find user roles', NOW(), 'system');
+
+INSERT INTO `permissions` (`id`, `application_id`,`permission_name`, `description`, `created_at`, `created_by`) 
+VALUES (17, 1, 'roles:findUsersByRoleName', 'Find users by role', NOW(), 'system');
+
+INSERT INTO `permissions` (`id`, `application_id`,`permission_name`, `description`, `created_at`, `created_by`) 
+VALUES (18, 1, 'roles:findUsersByRoleId', 'Find users by role V2', NOW(), 'system');
+
+INSERT INTO `permissions` (`id`, `application_id`,`permission_name`, `description`, `created_at`, `created_by`) 
+VALUES (19, 1, 'roles:findPermissionsByRoleId', 'Find permissions by role V2', NOW(), 'system');
+
+INSERT INTO `permissions` (`id`, `application_id`,`permission_name`, `description`, `created_at`, `created_by`) 
+VALUES (20, 1, 'roles:findRoleNotSuper', 'Find roles except superadmin', NOW(), 'system');
+
+INSERT INTO `permissions` (`id`, `application_id`,`permission_name`, `description`, `created_at`, `created_by`) 
+VALUES (21, 1, 'users:findUsersByOrganisation', 'Find users by organisation', NOW(), 'system');
+
+INSERT INTO `permissions` (`id`, `application_id`,`permission_name`, `description`, `created_at`, `created_by`) 
+VALUES (22, 1, 'users:list', 'View all users', NOW(), 'system');
+
+INSERT INTO `permissions` (`id`, `application_id`,`permission_name`, `description`, `created_at`, `created_by`) 
+VALUES (23, 1, 'users:view', 'View a user details', NOW(), 'system');
+
+INSERT INTO `permissions` (`id`, `application_id`,`permission_name`, `description`, `created_at`, `created_by`) 
+VALUES (24, 1, 'users:findUserByEmailOrUsername', 'Find user by email or username', NOW(), 'system');
+
 INSERT INTO `users_roles` (`id`, `user_id`, `role_id`, `organisation_id`, `created_at`)
 VALUES (1, '1', '1', '1', NOW());
 
 INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `organisation_id`, `created_at`)
-VALUES (1, '1', '1', '1', NOW());
+VALUES (1, '2', '3', '1', NOW());
 
 INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `organisation_id`, `created_at`)
-VALUES (2, '1', '2', '1', NOW());
+VALUES (2, '2', '4', '1', NOW());
 
 INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `organisation_id`, `created_at`)
-VALUES (3, '1', '3', '1', NOW());
+VALUES (3, '2', '5', '1', NOW());
+
+INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `organisation_id`, `created_at`)
+VALUES (4, '2', '7', '1', NOW());
+
+INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `organisation_id`, `created_at`)
+VALUES (5, '2', '8', '1', NOW());
+
+INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `organisation_id`, `created_at`)
+VALUES (6, '2', '9', '1', NOW());
+
+INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `organisation_id`, `created_at`)
+VALUES (7, '2', '10', '1', NOW());
+
+INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `organisation_id`, `created_at`)
+VALUES (8, '2', '11', '1', NOW());
+
+INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `organisation_id`, `created_at`)
+VALUES (9, '2', '12', '1', NOW());
+
+INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `organisation_id`, `created_at`)
+VALUES (10, '2', '13', '1', NOW());
+
+INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `organisation_id`, `created_at`)
+VALUES (11, '2', '14', '1', NOW());
+
+INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `organisation_id`, `created_at`)
+VALUES (12, '2', '15', '1', NOW());
+
+INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `organisation_id`, `created_at`)
+VALUES (13, '2', '16', '1', NOW());
+
+INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `organisation_id`, `created_at`)
+VALUES (14, '2', '17', '1', NOW());
+
+INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `organisation_id`, `created_at`)
+VALUES (15, '2', '18', '1', NOW());
+
+INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `organisation_id`, `created_at`)
+VALUES (16, '2', '19', '1', NOW());
+
+INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `organisation_id`, `created_at`)
+VALUES (17, '2', '20', '1', NOW());
+
+INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `organisation_id`, `created_at`)
+VALUES (18, '2', '21', '1', NOW());
+
+INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `organisation_id`, `created_at`)
+VALUES (19, '3', '15', '1', NOW());
+
+INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `organisation_id`, `created_at`)
+VALUES (20, '3', '16', '1', NOW());
+
+INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `organisation_id`, `created_at`)
+VALUES (21, '3', '19', '1', NOW());
+
+INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `organisation_id`, `created_at`)
+VALUES (22, '4', '15', '1', NOW());
+
+INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `organisation_id`, `created_at`)
+VALUES (23, '4', '16', '1', NOW());
+
+INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `organisation_id`, `created_at`)
+VALUES (24, '4', '19', '1', NOW());
+
+INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `organisation_id`, `created_at`)
+VALUES (25, '5', '15', '1', NOW());
+
+INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `organisation_id`, `created_at`)
+VALUES (26, '5', '16', '1', NOW());
+
+INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `organisation_id`, `created_at`)
+VALUES (27, '5', '19', '1', NOW());
+
+INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `organisation_id`, `created_at`)
+VALUES (28, '2', '23', '1', NOW());
+
+INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `organisation_id`, `created_at`)
+VALUES (29, '3', '23', '1', NOW());
+
+INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `organisation_id`, `created_at`)
+VALUES (30, '4', '23', '1', NOW());
+
+INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `organisation_id`, `created_at`)
+VALUES (31, '5', '23', '1', NOW());
+
+INSERT INTO `roles_permissions` (`id`, `role_id`, `permission_id`, `organisation_id`, `created_at`)
+VALUES (32, '2', '24', '1', NOW());
 
 

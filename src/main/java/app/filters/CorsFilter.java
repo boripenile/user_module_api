@@ -9,7 +9,7 @@ public class CorsFilter extends HttpSupportFilter {
 	private static final String headerAllowOrigin = "Access-Control-Allow-Origin";
 	private static final String headerRequestMethod = "Access-Control-Request-Method";
 	private static final String wildcard = "*";
-	private static final String headers = "app_code,id,user_id,role_id,role_name,action,org_code,Accept,Content-Type";
+	private static final String headers = "app_code,id,user_id,role_id,role_name,action,org_code,search_parameter,Accept,Content-Type";
 	
 	@Override
 	public void before() {

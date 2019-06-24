@@ -1,12 +1,29 @@
 package app.utils;
 
+import java.io.IOException;
 import java.math.BigInteger;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
 import java.util.Random;
 
+import javax.mail.MessagingException;
+
+import app.dto.RegistrationDTO;
+import app.mail.EmailService;
+import app.mail.Mail;
+import app.models.Application;
 import app.sms.Sms;
 import app.sms.SmsService;
+import freemarker.template.TemplateException;
 
 public class Utils {
+	
+	static Properties mailProps = null;
+
+	static {
+		mailProps = CommonUtil.loadPropertySettings("mail");
+	}
 	
 	public static String genWalletID () {
 		Random random = new Random();
@@ -98,6 +115,24 @@ public class Utils {
  		taskRef.append("TSK-");
  		taskRef.append(extractDigits.toUpperCase());
 		return taskRef.toString();
+	}
+	
+	public static boolean sendEmail(String salutation, String organisationName, String recipient, String mailTitle,
+			String body, String code, String actionUrl, String mailTemplate) throws MessagingException, IOException, TemplateException {
+		Mail mail = new Mail();
+		mail.setTo(recipient);
+		mail.setSubject(mailTitle);
+		Map<String, Object> model = new HashMap<>();
+		if (salutation != null) {
+			model.put("salutation", salutation);
+		}
+		model.put("organisation_name", organisationName);
+		model.put("mail_body", body);
+		if (actionUrl != null) {
+			model.put("action_url", mailProps.getProperty(actionUrl) + code);
+		}
+		mail.setModel(model);
+		return EmailService.sendSimpleMessage(mail, mailTemplate);
 	}
 	
 	public static void sendVerificationSMS(String[] numbers, 

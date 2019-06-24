@@ -25,12 +25,7 @@ public class UsersController extends AppController {
 			String actionName = header("action").toString();
 			switch (actionName) {
 			case "findUsersByOrganisation":
-				System.out.println("I am calling function findUsersByOrganisation()");
 				findUsersByOrganisation();
-				break;
-			case "registerUser":
-				System.out.println("I am calling function registerUser()");
-				registerUser();
 				break;
 			default:
 				break;
@@ -55,6 +50,10 @@ public class UsersController extends AppController {
 			case "validateReferralCode":
 				logInfo("I am calling function validateReferralCode()");
 				validateReferralCode();
+				break;
+			case "findUserByEmailOrUsername":
+				logInfo("I am calling function findUserByEmailOrUsername()");
+				findUserByEmailOrUsername();
 				break;
 			default:
 				break;
@@ -124,6 +123,26 @@ public class UsersController extends AppController {
 				}
 			} else {
 				view("code", 400, "message", "referral_code and app_code are required as header parameters");
+				render("error");
+			}
+		} catch (Exception e) {
+			logError(e.toString(), e);
+			view("code", 400, "message", e.getMessage() != null ? e.getMessage() : "Error occured");
+			render("error");
+		}
+	}
+	
+	public void findUserByEmailOrUsername() {
+		try {
+			if (header("search_parameter") != null) {
+				String searchParam = header("search_parameter").toString();
+				User result = userService.getUserByEmailOrUsername(searchParam);
+				if (result != null) {
+					view("code", 200, "total", 1, "data", result.toJson(true));
+					render("message");
+				}
+			} else {
+				view("code", 400, "message", "search_parameter must be user's email address or username");
 				render("error");
 			}
 		} catch (Exception e) {

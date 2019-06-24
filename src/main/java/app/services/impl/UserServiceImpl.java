@@ -17,6 +17,7 @@ import com.google.inject.Inject;
 import app.dto.LoggedUserDTO;
 import app.dto.PasswordParams;
 import app.dto.RegistrationDTO;
+import app.dto.UsersOrganisationDTO;
 import app.mail.EmailService;
 import app.mail.Mail;
 import app.models.Address;
@@ -27,6 +28,7 @@ import app.models.User;
 import app.models.UsersOrganisations;
 import app.models.UsersRoles;
 import app.services.AuthService;
+import app.services.RoleService;
 import app.services.UserService;
 import app.utils.CommonUtil;
 import app.utils.HashPassword;
@@ -38,6 +40,9 @@ public class UserServiceImpl implements UserService {
 	@Inject
 	private AuthService authService;
 
+	@Inject
+	private RoleService roleService;
+	
 	static Properties properties = null;
 
 	static {
@@ -137,54 +142,69 @@ public class UserServiceImpl implements UserService {
 			throw new Exception("No internet connectivity.");
 		}
 		if (registration.getAppCode() != null) {
+			Application application = checkApplication(registration.getAppCode());
 			LazyList<Role> roles = null;
 			Organisation myOrganisation = null;
-			if (registration.getOrganisationCode() != null && registration.getRoleName() != null) {
+			if (registration.getOrganisation() != null) {
+				System.out.println("I am loading roles...");
+				roles = Role.findBySQL("select roles.* from roles where roles.role_name=?", "admin");
+				int length = roles.size();
+				if (length == 0) {
+					throw new Exception("Invalid role name");
+				}
+				return registerUserInformation(registration, roles, null, application);
+			} else if (registration.getOrganisationCode() != null) {
 				myOrganisation = checkOrganisation(registration.getOrganisationCode());
 				roles = Role.findBySQL("select roles.* from roles where roles.role_name=?", registration.getRoleName());
-			} else {
-				if (registration.getOrganisation() != null) {
-					roles = Role.findBySQL("select roles.* from roles where roles.role_name=?", "admin");
+				int length = roles.size();
+				if (length == 0) {
+					throw new Exception("Invalid role name");
 				}
-			}
-			
-			int length = roles.size();
-			if (length == 0) {
-				throw new Exception("Invalid role name");
-			}
-			if (registration.getEmailAddress() != null && registration.getPhoneNumber() != null
-					&& registration.getUsername() != null && registration.getPassword() != null) {
-
-				Application application = checkApplication(registration.getAppCode());
-
-				checkEmailAndUsername(registration);
-				checkPhoneNumber(registration);
-
-				String verificationCodePhone = Utils.genVerificationCode();
-				String verificationCodeEmail = Utils.genVerificationCode();
-
-				Utils.sendVerificationSMS(new String[] { registration.getPhoneNumber().trim() }, verificationCodePhone,
-						Boolean.FALSE, Boolean.FALSE, "APP");
-
-				boolean sent = sendVerificationEmail(registration, application, verificationCodeEmail);
-
-				if (sent) {
-					if (registration.getOrganisation() != null) {
-						Organisation organisation = createOrganistion(registration, application);
-						return createUserDetails(registration, roles, application, organisation, verificationCodePhone,
-								verificationCodeEmail);
-					} else if (myOrganisation != null) {
-						return createUserDetails(registration, roles, application, myOrganisation,
-								verificationCodePhone, verificationCodeEmail);
-					}
-				}
+				return registerUserInformation(registration, roles, myOrganisation, application);
 			} else {
-				throw new Exception("Email address, phone number and username are required.");
+				return registerUserInformation(registration, null, null, application);
 			}
 		} else {
 			throw new Exception("Application code is required.");
 		}
-		return null;
+	}
+
+	private String registerUserInformation(RegistrationDTO registration, LazyList<Role> roles, 
+			Organisation myOrganisation, Application application)
+			throws Exception, MessagingException, IOException, TemplateException {
+		if (registration.getEmailAddress() != null && registration.getPhoneNumber() != null
+				&& registration.getUsername() != null && registration.getPassword() != null) {
+
+			checkEmailAndUsername(registration);
+			checkPhoneNumber(registration);
+
+			String verificationCodePhone = Utils.genVerificationCode();
+			String verificationCodeEmail = Utils.genVerificationCode();
+
+			Utils.sendVerificationSMS(new String[] { registration.getPhoneNumber().trim() }, verificationCodePhone,
+					Boolean.FALSE, Boolean.FALSE, "APP");
+
+			boolean sent = sendVerificationEmail(registration, application, verificationCodeEmail);
+
+			if (sent) {
+				if (registration.getOrganisation() != null) {
+					Organisation organisation = createOrganistion(registration, application);
+					System.out.println(roles.get(0).toJson(true));
+					return createUserDetails(registration, roles, application, organisation, 
+							verificationCodePhone, verificationCodeEmail);
+				} else if (myOrganisation != null) {
+					return createUserDetails(registration, roles, application, myOrganisation,
+							verificationCodePhone, verificationCodeEmail);
+				} else {
+					return createUserDetails(registration, null, application, null,
+							verificationCodePhone, verificationCodeEmail);
+				}
+			} else {
+				return null;
+			}
+		} else {
+			throw new Exception("Email address, phone number and username are required.");
+		}
 	}
 
 	private boolean sendVerificationEmail(RegistrationDTO registration, Application application,
@@ -201,7 +221,8 @@ public class UserServiceImpl implements UserService {
 
 	private Organisation createOrganistion(RegistrationDTO registration, Application application) throws Exception, IOException {
 		String parentReferralCode = null;
-		if (registration.getOrganisation().getReferralCode() != null) {
+		if (registration.getOrganisation().getReferralCode() != null 
+				&& !registration.getOrganisation().getReferralCode().isEmpty()) {
 			if (parentReferralCodeExist(registration.getOrganisation().getReferralCode())) {
 				parentReferralCode = registration.getOrganisation().getReferralCode();
 			}
@@ -224,14 +245,19 @@ public class UserServiceImpl implements UserService {
 		organisation.set("parent_referral_code", parentReferralCode != null ? parentReferralCode : null);
 		organisation.set("created_by", registration.getUsername());
 		organisation.setParent(application);
-		if (!organisation.save()) {
+		if (organisation.save()) {
+			roleService.copyRolePermissions("admin", organisationCode);
+			roleService.copyRolePermissions("client", organisationCode);
+			roleService.copyRolePermissions("staff", organisationCode);
+			roleService.copyRolePermissions("customer", organisationCode);
+		} else {
 			throw new Exception("Unable to save organisation provided. Please try again");
 		}
 		return organisation;
 	}
 
 	private String createUserDetails(RegistrationDTO registration, LazyList<Role> roles, Application application,
-			Organisation organisation, String verificationCodePhone, String verificationCodeEmail) {
+			Organisation organisation, String verificationCodePhone, String verificationCodeEmail) throws Exception{
 		Address address = new Address();
 		address.set("phone_number", registration.getPhoneNumber());
 		address.set("created_by", registration.getUsername());
@@ -253,18 +279,22 @@ public class UserServiceImpl implements UserService {
 			user.set("active", 0);
 			user.setParent(address);
 			if (user.save()) {
-				UsersOrganisations usersOrgs = new UsersOrganisations();
-				usersOrgs.set("user_id", user.getId());
-				usersOrgs.set("organisation_id", organisation.getId());
-				usersOrgs.set("application_id", application.getId());
-				if (usersOrgs.save()) {
-					UsersRoles userRole = new UsersRoles();
-					userRole.set("user_id", user.getId());
-					userRole.set("role_id", roles.get(0).getId());
-					userRole.set("organisation_id", organisation.getId());
-					if (userRole.save()) {
-						return "Verification code sent to your phone number and email address. ";
+				if (organisation != null) {
+					UsersOrganisations usersOrgs = new UsersOrganisations();
+					usersOrgs.set("user_id", user.getId());
+					usersOrgs.set("organisation_id", organisation.getId());
+					usersOrgs.set("application_id", application.getId());
+					if (usersOrgs.save()) {
+						UsersRoles userRole = new UsersRoles();
+						userRole.set("user_id", user.getId());
+						userRole.set("role_id", roles.get(0).getId());
+						userRole.set("organisation_id", organisation.getId());
+						if (userRole.save()) {
+							return "Verification code sent to your phone number and email address. ";
+						}
 					}
+				} else {
+					return "Verification code sent to your phone number and email address. ";
 				}
 			} else {
 				address.delete();
@@ -406,6 +436,29 @@ public class UserServiceImpl implements UserService {
 		} catch (Exception e) {
 			throw new Exception("We cannot verify the referral code. Please check it.");
 		}
+	}
+
+	@Override
+	public User getUserByEmailOrUsername(String uniqueParameter) throws Exception {
+		try {
+			User user = User.findFirst("username=? or email_address=? and active=?", uniqueParameter, uniqueParameter, 1);
+			user.set("password", null);
+			return user;
+		} catch (Exception e){
+			throw new Exception("We cannot verify the user unique identifier. Please check.");
+		}
+	}
+
+	@Override
+	public String[] addUsersToOrganisation(UsersOrganisationDTO usersOrganisation) throws Exception {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public String[] removeUsersFromOrganisation(UsersOrganisationDTO usersOrganisation) throws Exception {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

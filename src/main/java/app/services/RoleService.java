@@ -39,4 +39,8 @@ public interface RoleService extends ModelService<Role> {
 	
 	public RoleDTO[] findUserRolesByUserId(String userId, String orgCode) throws Exception;
 	
+	public LazyList<Role> findRolesNotSuper() throws Exception;
+	
+	public void copyRolePermissions(String sourceRole, String dstinationOrganisationCode) throws Exception;
+	
 }

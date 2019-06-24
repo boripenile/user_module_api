@@ -1,6 +1,7 @@
 package app.services;
 
 import app.dto.RegistrationDTO;
+import app.dto.UsersOrganisationDTO;
 
 import org.javalite.activejdbc.LazyList;
 
@@ -25,5 +26,11 @@ public interface UserService extends ModelService<User>{
 	 public LazyList<User> getUsersByOrganisationCode(String organisationCode) throws Exception;
 	 
 	 public boolean validateReferralCode(String referralCode) throws Exception;
+	 
+	 public User getUserByEmailOrUsername(String uniqueParameter) throws Exception;
+	 
+	 public String[] addUsersToOrganisation(UsersOrganisationDTO usersOrganisation) throws Exception;
+	 
+	 public String[] removeUsersFromOrganisation(UsersOrganisationDTO usersOrganisation) throws Exception;
 	 
 }

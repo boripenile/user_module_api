@@ -562,5 +562,58 @@ public class RoleServiceImpl implements RoleService{
 		}
 	}
 
-	
+	@Override
+	public LazyList<Role> findRolesNotSuper() throws Exception {
+		try {
+			LazyList<Role> roles = Role.findBySQL("select roles.* FROM roles WHERE role_name != ?", "superadmin");
+			int length = roles.size();
+			if (length == 0) {
+				throw new Exception("No roles found");
+			}
+			return roles;
+		} finally {
+		}
+	}
+
+	@Override
+	public void copyRolePermissions(String sourceRole, String destinationOrganisationCode)
+			throws Exception {
+			if (sourceRole != null && destinationOrganisationCode != null) {
+				if (destinationOrganisationCode.length() < 6 || destinationOrganisationCode.length() > 6) {
+					throw new Exception("Invalid organisation");
+				}
+				System.out.println("Role: " + sourceRole + ", organisation code: " + destinationOrganisationCode);
+				LazyList<RolesPermissions> sourceRolePermissions = 
+						RolesPermissions.findBySQL("select roles_permissions.* from roles_permissions inner join roles "
+								+ "on roles_permissions.role_id = roles.id inner join permissions "
+								+ "on roles_permissions.permission_id=permissions.id inner join organisations "
+								+ "on roles_permissions.organisation_id=organisations.id where roles.role_name LIKE ? and organisations.id=?", 
+								sourceRole, 1);
+				try {
+					int length = sourceRolePermissions.size();
+					if (length > 0) {
+						Organisation organisation = Organisation.findFirst("code=? and active=?", destinationOrganisationCode, 1);
+						for (RolesPermissions rolePerm : sourceRolePermissions) {
+							RolesPermissions rolePerms = new RolesPermissions();
+							rolePerms.set("role_id", rolePerm.getString("role_id"));
+							rolePerms.set("permission_id", rolePerm.getString("permission_id"));
+							rolePerms.set("organisation_id", organisation.getId());
+							rolePerms.set("active", 1);
+							try {
+								rolePerms.save();
+							} catch (Exception e) {
+								continue;
+							}
+						}
+					} else {
+						return;
+					}
+				} catch (Exception e) {
+					return;
+				}
+			} else {
+				throw new Exception("Source role, destination role and organisation are required");
+			}	
+		
+	}
 }
